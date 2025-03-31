@@ -5,23 +5,24 @@ import AppLayout from './components/layout/AppLayout';
 import Loading from './components/common/Loading';
 
 // Lazy-loaded components for better performance
-const Login = React.lazy(() => import('./pages/auth/Login'));
-const Register = React.lazy(() => import('./pages/auth/Register'));
-const Dashboard = React.lazy(() => import('./pages/dashboard/Dashboard'));
-const CompaniesList = React.lazy(() => import('./pages/companies/CompaniesList'));
-const CompanyDetail = React.lazy(() => import('./pages/companies/CompanyDetail'));
-const CompanyForm = React.lazy(() => import('./pages/companies/CompanyForm'));
-const StatementsList = React.lazy(() => import('./pages/financial/StatementsList'));
-const StatementDetail = React.lazy(() => import('./pages/financial/StatementDetail'));
-const StatementForm = React.lazy(() => import('./pages/financial/StatementForm'));
-const RiskAssessmentsList = React.lazy(() => import('./pages/risk/RiskAssessmentsList'));
-const RiskAssessmentDetail = React.lazy(() => import('./pages/risk/RiskAssessmentDetail'));
-const AlertsList = React.lazy(() => import('./pages/risk/AlertsList'));
-const ReportsList = React.lazy(() => import('./pages/reports/ReportsList'));
-const GenerateReport = React.lazy(() => import('./pages/reports/GenerateReport'));
-const UsersList = React.lazy(() => import('./pages/users/UsersList'));
-const UserForm = React.lazy(() => import('./pages/users/UserForm'));
-const Settings = React.lazy(() => import('./pages/settings/Settings'));
+// Note the change in import format - we're using the default export
+const Login = React.lazy(() => import('./pages/auth/Login').then(module => ({ default: module.default })));
+const Register = React.lazy(() => import('./pages/auth/Register').then(module => ({ default: module.default })));
+const Dashboard = React.lazy(() => import('./pages/dashboard/Dashboard').then(module => ({ default: module.default })));
+const CompaniesList = React.lazy(() => import('./pages/companies/CompaniesList').then(module => ({ default: module.default })));
+const CompanyDetail = React.lazy(() => import('./pages/companies/CompanyDetail').then(module => ({ default: module.default })));
+const CompanyForm = React.lazy(() => import('./pages/companies/CompanyForm').then(module => ({ default: module.default })));
+const StatementsList = React.lazy(() => import('./pages/financial/StatementsList').then(module => ({ default: module.default })));
+const StatementDetail = React.lazy(() => import('./pages/financial/StatementDetail').then(module => ({ default: module.default })));
+const StatementForm = React.lazy(() => import('./pages/financial/StatementForm').then(module => ({ default: module.default })));
+const RiskAssessmentsList = React.lazy(() => import('./pages/risk/RiskAssessmentsList').then(module => ({ default: module.default })));
+const RiskAssessmentDetail = React.lazy(() => import('./pages/risk/RiskAssessmentDetail').then(module => ({ default: module.default })));
+const AlertsList = React.lazy(() => import('./pages/risk/AlertsList').then(module => ({ default: module.default })));
+const ReportsList = React.lazy(() => import('./pages/reports/ReportsList').then(module => ({ default: module.default })));
+const GenerateReport = React.lazy(() => import('./pages/reports/GenerateReport').then(module => ({ default: module.default })));
+const UsersList = React.lazy(() => import('./pages/users/UsersList').then(module => ({ default: module.default })));
+const UserForm = React.lazy(() => import('./pages/users/UserForm').then(module => ({ default: module.default })));
+const Settings = React.lazy(() => import('./pages/settings/Settings').then(module => ({ default: module.default })));
 
 // Protected route wrapper
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
