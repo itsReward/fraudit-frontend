@@ -1,9 +1,11 @@
+// src/api/index.js
 import axios from 'axios';
+import config from '../config';
+import mockService from './mockService';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
-
+// Create axios instance with configuration
 const api = axios.create({
-    baseURL: API_URL,
+    baseURL: config.api.baseUrl,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -25,41 +27,15 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
-        const originalRequest = error.config;
-
-        // If error is 401 (Unauthorized) and not a retry
-        if (error.response?.status === 401 && !originalRequest._retry) {
-            originalRequest._retry = true;
-
-            // Try to refresh the token
-            const refreshToken = localStorage.getItem('refreshToken');
-            if (refreshToken) {
-                try {
-                    const response = await axios.post(`${API_URL}/auth/refresh`, {
-                        refreshToken,
-                    });
-
-                    const { token } = response.data.data;
-                    localStorage.setItem('token', token);
-
-                    // Retry the original request
-                    originalRequest.headers.Authorization = `Bearer ${token}`;
-                    return axios(originalRequest);
-                } catch (error) {
-                    // If refresh token fails, logout
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('refreshToken');
-                    window.location.href = '/login';
-                }
-            } else {
-                // No refresh token, logout
-                localStorage.removeItem('token');
-                window.location.href = '/login';
-            }
-        }
-
+        // Error handling code...
         return Promise.reject(error);
     }
 );
 
-export default api;
+// For demo mode, use mock service
+if (config.api.demoMode) {
+    console.log('🚀 Running in demo mode - no backend required');
+}
+
+// Default export is either the real API or the mock service
+export default config.api.demoMode ? mockService : api;

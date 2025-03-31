@@ -1,99 +1,126 @@
+// src/api/risk.js
 import api from './index';
-
-// Risk Assessments
-export const getRiskAssessments = (params) => {
-    return api.get('/fraud-risk/assessments', { params });
-};
-
-export const getRiskAssessmentById = (id) => {
-    return api.get(`/fraud-risk/assessments/${id}`);
-};
-
-export const getRiskAssessmentByStatementId = (statementId) => {
-    return api.get(`/fraud-risk/assessments/statement/${statementId}`);
-};
-
-export const performRiskAssessment = (statementId) => {
-    return api.post('/fraud-risk/assess', { statementId });
-};
-
-// Risk Alerts
-export const getRiskAlerts = (params) => {
-    return api.get('/fraud-risk/alerts', { params });
-};
-
-export const getRiskAlertById = (id) => {
-    return api.get(`/fraud-risk/alerts/${id}`);
-};
-
-export const resolveRiskAlert = (id, resolutionNotes) => {
-    return api.put(`/fraud-risk/alerts/${id}/resolve`, { resolutionNotes });
-};
+import config from '../config';
+import mockService, {riskAPI as service} from './mockService';
 
 // Dashboard Data
 export const getFraudRiskStats = () => {
+    if (config.api.demoMode) {
+        return Promise.resolve({
+            data: {
+                success: true,
+                message: 'Success',
+                data: mockService.dashboard.fraudRiskStats
+            }
+        });
+    }
     return api.get('/dashboard/fraud-risk-stats');
 };
 
 export const getCompanyRiskSummary = () => {
+    if (config.api.demoMode) {
+        return Promise.resolve({
+            data: {
+                success: true,
+                message: 'Success',
+                data: mockService.dashboard.companyRiskSummary
+            }
+        });
+    }
     return api.get('/dashboard/company-risk-summary');
 };
 
 export const getFraudIndicatorsDistribution = () => {
+    if (config.api.demoMode) {
+        return Promise.resolve({
+            data: {
+                success: true,
+                message: 'Success',
+                data: mockService.dashboard.fraudIndicatorsDistribution
+            }
+        });
+    }
     return api.get('/dashboard/fraud-indicators-distribution');
 };
 
 export const getRecentRiskAlerts = (limit = 5) => {
+    if (config.api.demoMode) {
+        const limitedAlerts = mockService.dashboard.recentRiskAlerts;
+        return Promise.resolve({
+            data: {
+                success: true,
+                message: 'Success',
+                data: limitedAlerts
+            }
+        });
+    }
     return api.get('/dashboard/recent-risk-alerts', { params: { limit } });
 };
 
 export const getFraudRiskTrends = (companyId) => {
+    if (config.api.demoMode) {
+        return Promise.resolve({
+            data: {
+                success: true,
+                message: 'Success',
+                data: mockService.dashboard.fraudRiskTrends
+            }
+        });
+    }
     return api.get('/dashboard/fraud-risk-trends', {
         params: companyId ? { companyId } : undefined,
     });
 };
 
 export const getUserActivityStats = (userId) => {
+    if (config.api.demoMode) {
+        return Promise.resolve({
+            data: {
+                success: true,
+                message: 'Success',
+                data: {} // Add mock data if needed
+            }
+        });
+    }
     return api.get('/dashboard/user-activity', {
         params: userId ? { userId } : undefined,
     });
 };
 
-// ML Models and Predictions
-export const getMlModels = (isActive) => {
-    return api.get('/ml/models', {
-        params: isActive !== undefined ? { isActive } : undefined,
-    });
+// Risk Assessments
+export const getRiskAssessments = (params) => {
+
+    return service.getRiskAssessments ? service.getRiskAssessments(params) :
+        api.get('/fraud-risk/assessments', { params });
 };
 
-export const getMlModelById = (id) => {
-    return api.get(`/ml/models/${id}`);
+export const getRiskAssessmentById = (id) => {
+    return service.getRiskAssessmentById ? service.getRiskAssessmentById(id) :
+        api.get(`/fraud-risk/assessments/${id}`);
 };
 
-export const createMlModel = (modelData) => {
-    return api.post('/ml/models', modelData);
+export const getRiskAssessmentByStatementId = (statementId) => {
+    return service.getRiskAssessmentByStatementId ? service.getRiskAssessmentByStatementId(statementId) :
+        api.get(`/fraud-risk/assessments/statement/${statementId}`);
 };
 
-export const updateMlModel = (id, modelData) => {
-    return api.put(`/ml/models/${id}`, modelData);
+export const performRiskAssessment = (statementId) => {
+    return service.performRiskAssessment ? service.performRiskAssessment(statementId) :
+        api.post('/fraud-risk/assess', { statementId });
 };
 
-export const activateMlModel = (id) => {
-    return api.put(`/ml/models/${id}/activate`);
+// Risk Alerts
+export const getRiskAlerts = (params) => {
+    return service.getRiskAlerts ? service.getRiskAlerts(params) :
+        api.get('/fraud-risk/alerts', { params });
 };
 
-export const deactivateMlModel = (id) => {
-    return api.put(`/ml/models/${id}/deactivate`);
+export const getRiskAlertById = (id) => {
+    return service.getRiskAlertById ? service.getRiskAlertById(id) :
+        api.get(`/fraud-risk/alerts/${id}`);
 };
 
-export const deleteMlModel = (id) => {
-    return api.delete(`/ml/models/${id}`);
-};
-
-export const getMlPredictionsByStatementId = (statementId) => {
-    return api.get(`/ml/predictions/statement/${statementId}`);
-};
-
-export const performMlPrediction = (statementId) => {
-    return api.post(`/ml/predict/${statementId}`);
+export const resolveRiskAlert = (id, resolutionNotes) => {
+    return service.resolveRiskAlert ? service.resolveRiskAlert(id, resolutionNotes) :
+        api.put(`/fraud-risk/alerts/${id}/resolve`, { resolutionNotes });
 };

@@ -178,7 +178,6 @@ const Dashboard = () => {
                             {companies && companies.length > 0 ? (
                                 companies
                                     .sort((a, b) => b.riskScore - a.riskScore)
-                                    .slice(0, 5)
                                     .map((company, index) => (
                                         <div key={index} className="flex items-center justify-between">
                                             <div className="flex items-center">

@@ -9,12 +9,6 @@ import Alert from '../../components/common/Alert';
 const Login = () => {
     const { login, isAuthenticated, loading } = useAuth();
     const [loginError, setLoginError] = useState(null);
-
-    // Redirect if already authenticated
-    if (isAuthenticated) {
-        return <Navigate to="/dashboard" replace />;
-    }
-
     const formik = useFormik({
         initialValues: {
             username: '',
@@ -34,6 +28,16 @@ const Login = () => {
             }
         },
     });
+
+    // Redirect if already authenticated
+    if (isAuthenticated) {
+        return <Navigate to="/dashboard" replace />;
+    }
+
+
+    if (isAuthenticated) {
+        return <Navigate to="/dashboard" replace />;
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-secondary-50 py-12 px-4 sm:px-6 lg:px-8">

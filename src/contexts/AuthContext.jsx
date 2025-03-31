@@ -1,7 +1,9 @@
+// src/contexts/AuthContext.jsx
 import React, { createContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import jwt_decode from 'jwt-decode';
 import { login, register, refreshToken } from '../api/auth';
+import config from '../config';
 
 const AuthContext = createContext(null);
 
@@ -15,33 +17,44 @@ export const AuthProvider = ({ children }) => {
     // Initialize auth state from local storage
     useEffect(() => {
         const initializeAuth = async () => {
-            const token = localStorage.getItem('token');
-            const refreshTokenValue = localStorage.getItem('refreshToken');
+            // Check for demo mode
+            const demoMode = config.api.demoMode;
+            const token = demoMode ? localStorage.getItem('demo_token') : localStorage.getItem('token');
+            const refreshTokenValue = demoMode ? null : localStorage.getItem('refreshToken');
 
             if (token) {
                 try {
-                    // Check if token is expired
-                    const decodedToken = jwt_decode(token);
-                    const currentTime = Date.now() / 1000;
+                    if (demoMode) {
+                        // In demo mode, get user from localStorage
+                        const demoUser = JSON.parse(localStorage.getItem('demo_user') || 'null');
+                        if (demoUser) {
+                            setUser(demoUser);
+                            setIsAuthenticated(true);
+                        }
+                    } else {
+                        // Production mode - validate token
+                        const decodedToken = jwt_decode(token);
+                        const currentTime = Date.now() / 1000;
 
-                    if (decodedToken.exp < currentTime) {
-                        // Token is expired, try to refresh
-                        if (refreshTokenValue) {
-                            try {
-                                const response = await refreshToken(refreshTokenValue);
-                                handleAuthSuccess(response.data);
-                            } catch (error) {
-                                // Refresh token is invalid, logout
+                        if (decodedToken.exp < currentTime) {
+                            // Token is expired, try to refresh
+                            if (refreshTokenValue) {
+                                try {
+                                    const response = await refreshToken(refreshTokenValue);
+                                    handleAuthSuccess(response.data);
+                                } catch (error) {
+                                    // Refresh token is invalid, logout
+                                    handleLogout();
+                                }
+                            } else {
+                                // No refresh token, logout
                                 handleLogout();
                             }
                         } else {
-                            // No refresh token, logout
-                            handleLogout();
+                            // Token is valid
+                            setUser(decodedToken);
+                            setIsAuthenticated(true);
                         }
-                    } else {
-                        // Token is valid
-                        setUser(decodedToken);
-                        setIsAuthenticated(true);
                     }
                 } catch (error) {
                     // Token is invalid, logout
@@ -56,13 +69,22 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     const handleAuthSuccess = (data) => {
-        localStorage.setItem('token', data.token);
+        if (config.api.demoMode) {
+            // In demo mode, store in demo-specific localStorage
+            localStorage.setItem('demo_token', data.token);
+            localStorage.setItem('demo_user', JSON.stringify(data));
+            setUser(data);
+        } else {
+            // Production mode
+            localStorage.setItem('token', data.token);
 
-        if (data.refreshToken) {
-            localStorage.setItem('refreshToken', data.refreshToken);
+            if (data.refreshToken) {
+                localStorage.setItem('refreshToken', data.refreshToken);
+            }
+
+            setUser(jwt_decode(data.token));
         }
 
-        setUser(jwt_decode(data.token));
         setIsAuthenticated(true);
         setError(null);
     };
@@ -70,8 +92,18 @@ export const AuthProvider = ({ children }) => {
     const handleLogin = async (credentials) => {
         try {
             setLoading(true);
+
+            // Use demo credentials if in demo mode and credentials are empty
+            if (config.api.demoMode && (!credentials.username || !credentials.password)) {
+                credentials = {
+                    username: config.api.demo.defaultUsername,
+                    password: config.api.demo.defaultPassword,
+                    rememberMe: true
+                };
+            }
+
             const response = await login(credentials);
-            handleAuthSuccess(response.data);
+            handleAuthSuccess(response.data.data);
             navigate('/dashboard');
             return response;
         } catch (error) {
@@ -96,8 +128,14 @@ export const AuthProvider = ({ children }) => {
     };
 
     const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
+        if (config.api.demoMode) {
+            localStorage.removeItem('demo_token');
+            localStorage.removeItem('demo_user');
+        } else {
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+        }
+
         setUser(null);
         setIsAuthenticated(false);
         navigate('/login');
