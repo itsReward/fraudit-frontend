@@ -4,74 +4,44 @@ import config from '../config';
 import mockService, {riskAPI as service} from './mockService';
 
 // Dashboard Data
+// src/api/risk.js (updated implementations)
 export const getFraudRiskStats = () => {
     if (config.api.demoMode) {
-        return Promise.resolve({
-            data: {
-                success: true,
-                message: 'Success',
-                data: mockService.dashboard.fraudRiskStats
-            }
-        });
+        // Use the mock service's API method directly
+        return mockService.dashboard.getFraudRiskStats();
     }
     return api.get('/dashboard/fraud-risk-stats');
 };
 
 export const getCompanyRiskSummary = () => {
     if (config.api.demoMode) {
-        return Promise.resolve({
-            data: {
-                success: true,
-                message: 'Success',
-                data: mockService.dashboard.companyRiskSummary
-            }
-        });
+        return mockService.dashboard.getCompanyRiskSummary();
     }
     return api.get('/dashboard/company-risk-summary');
 };
 
 export const getFraudIndicatorsDistribution = () => {
     if (config.api.demoMode) {
-        return Promise.resolve({
-            data: {
-                success: true,
-                message: 'Success',
-                data: mockService.dashboard.fraudIndicatorsDistribution
-            }
-        });
+        return mockService.dashboard.getFraudIndicatorsDistribution();
     }
     return api.get('/dashboard/fraud-indicators-distribution');
 };
 
 export const getRecentRiskAlerts = (limit = 5) => {
     if (config.api.demoMode) {
-        const limitedAlerts = mockService.dashboard.recentRiskAlerts;
-        return Promise.resolve({
-            data: {
-                success: true,
-                message: 'Success',
-                data: limitedAlerts
-            }
-        });
+        return mockService.dashboard.getRecentRiskAlerts(limit);
     }
     return api.get('/dashboard/recent-risk-alerts', { params: { limit } });
 };
 
 export const getFraudRiskTrends = (companyId) => {
     if (config.api.demoMode) {
-        return Promise.resolve({
-            data: {
-                success: true,
-                message: 'Success',
-                data: mockService.dashboard.fraudRiskTrends
-            }
-        });
+        return mockService.dashboard.getFraudRiskTrends(companyId);
     }
     return api.get('/dashboard/fraud-risk-trends', {
         params: companyId ? { companyId } : undefined,
     });
 };
-
 export const getUserActivityStats = (userId) => {
     if (config.api.demoMode) {
         return Promise.resolve({
