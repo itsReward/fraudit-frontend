@@ -95,3 +95,17 @@ export const calculateAllScores = (statementId) => {
         serviceAnalysis.calculateAllScores(statementId) :
         api.post(`/financial-analysis/calculate/${statementId}`);
 };
+
+// Documents
+export const uploadDocument = (statementId, file, options = {}) => {
+    // Create FormData object
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return api.post(`/financial-statements/${statementId}/documents`, formData, {
+        headers: {
+            'Content-Type': 'multipart/form-data',
+        },
+        ...options
+    });
+};

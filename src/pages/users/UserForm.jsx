@@ -3,11 +3,11 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createUser, updateUser } from '../../api/users';
-import Card from '../common/Card';
-import Button from '../common/Button';
-import Input from '../common/Input';
-import Select from '../common/Select';
-import Alert from '../common/Alert';
+import Card from '../../components/common/Card';
+import Button from '../../components/common/Button';
+import Input from '../../components/common/Input';
+import Select from '../../components/common/Select';
+import Alert from '../../components/common/Alert';
 import { FiSave, FiX } from 'react-icons/fi';
 
 const UserForm = ({ user = null, onSuccess, onCancel }) => {

@@ -10,3 +10,14 @@ export const generateReport = (reportType, parameters) => {
         { responseType: 'blob' }
     );
 };
+
+// Added missing exports
+export const getReports = (params) => {
+    return api.get('/reports', { params });
+};
+
+export const downloadReport = (reportId) => {
+    return api.get(`/reports/${reportId}/download`, {
+        responseType: 'blob'
+    });
+};

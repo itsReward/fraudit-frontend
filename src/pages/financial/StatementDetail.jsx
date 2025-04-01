@@ -20,7 +20,7 @@ import FinancialRatiosTable from '../../components/analysis/FinancialRatiosTable
 import RiskScoreCard from '../../components/analysis/RiskScoreCard';
 import FinancialDataForm from '../../components/financial/FinancialDataForm';
 import DocumentUploader from '../../components/financial/DocumentUploader';
-import { FiFileText, FiBarChart2, FiEdit, FiDownload, FiFileCheck } from 'react-icons/fi';
+import { FiFileText, FiBarChart2, FiEdit, FiDownload, FiCheckCircle } from 'react-icons/fi';
 
 const StatementDetail = () => {
     const { id } = useParams();
@@ -180,7 +180,7 @@ const StatementDetail = () => {
                                     : 'bg-secondary-100 text-secondary-600'
                         }`}>
                             {statement.status === 'ANALYZED' ? (
-                                <FiFileCheck className="h-5 w-5" />
+                                <FiCheckCircle className="h-5 w-5" />
                             ) : statement.status === 'PROCESSED' ? (
                                 <FiBarChart2 className="h-5 w-5" />
                             ) : (

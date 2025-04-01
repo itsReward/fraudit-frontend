@@ -19,6 +19,23 @@ const UsersList = () => {
     // Check if user has permission to access this page
     const hasPermission = currentUser && (currentUser.role === 'ADMIN' || currentUser.role === 'REGULATOR');
 
+    // Always call useQuery, but enable it conditionally
+    const { data, isLoading, error, refetch } = useQuery(
+        ['users', { page, pageSize, role: roleFilter }],
+        () => getUsers({ page, size: pageSize, role: roleFilter }),
+        {
+            // Only enable the query if the user has permission
+            enabled: hasPermission,
+            // Return empty data for users without permission
+            select: (data) => hasPermission ? data : { data: { data: { content: [], totalPages: 0, totalElements: 0 } } }
+        }
+    );
+
+    // Extract the data safely
+    const users = data?.data?.data?.content || [];
+    const totalPages = data?.data?.data?.totalPages || 0;
+    const totalElements = data?.data?.data?.totalElements || 0;
+
     if (!hasPermission) {
         return (
             <Alert variant="danger" title="Access Denied">
@@ -26,16 +43,6 @@ const UsersList = () => {
             </Alert>
         );
     }
-
-    // Fetch users with filters
-    const { data, isLoading, error, refetch } = useQuery(
-        ['users', { page, pageSize, role: roleFilter }],
-        () => getUsers({ page, size: pageSize, role: roleFilter })
-    );
-
-    const users = data?.data?.data?.content || [];
-    const totalPages = data?.data?.data?.totalPages || 0;
-    const totalElements = data?.data?.data?.totalElements || 0;
 
     // Handle search input change
     const handleSearchChange = (e) => {
