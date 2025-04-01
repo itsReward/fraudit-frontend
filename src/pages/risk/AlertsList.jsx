@@ -229,6 +229,116 @@ const AlertsList = () => {
                 </Card>
             )}
 
+            {/* Results */}
+            {alerts.length > 0 ? (
+                <div className="bg-white shadow overflow-hidden sm:rounded-md">
+                    <ul className="divide-y divide-secondary-200">
+                        {alerts.map((alert) => (
+                            <li key={alert.id} className="px-6 py-4">
+                                <div className="flex items-start">
+                                    <div className={`mt-1 h-3 w-3 rounded-full flex-shrink-0 ${
+                                        alert.severity === 'HIGH' || alert.severity === 'VERY_HIGH'
+                                            ? 'bg-danger-500'
+                                            : alert.severity === 'MEDIUM'
+                                                ? 'bg-warning-500'
+                                                : 'bg-success-500'
+                                    }`}
+                                    />
+                                    <div className="ml-3 flex-1">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="text-sm font-medium text-secondary-900">{alert.message}</h4>
+                                            <div className="flex items-center">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                    alert.severity === 'HIGH' || alert.severity === 'VERY_HIGH'
+                                                        ? 'bg-danger-100 text-danger-800'
+                                                        : alert.severity === 'MEDIUM'
+                                                            ? 'bg-warning-100 text-warning-800'
+                                                            : 'bg-success-100 text-success-800'
+                                                }`}>
+                                                    {alert.severity}
+                                                </span>
+                                                {alert.isResolved && (
+                                                    <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-800">
+                                                        <FiCheck className="mr-1 h-3 w-3" />
+                                                        Resolved
+                                                    </span>
+                                                )}
+                                                {!alert.isResolved && (
+                                                    <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger-100 text-danger-800">
+                                                        <FiX className="mr-1 h-3 w-3" />
+                                                        Unresolved
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="mt-1 flex items-center justify-between">
+                                            <div>
+                                                <p className="text-sm text-secondary-500">
+                                                    <Link
+                                                        to={`/companies/${alert.companyId}`}
+                                                        className="text-primary-600 hover:text-primary-500"
+                                                    >
+                                                        {alert.companyName}
+                                                    </Link>
+                                                    <span className="mx-1">•</span>
+                                                    <span>{alert.alertType}</span>
+                                                </p>
+                                                <p className="mt-1 text-xs text-secondary-500">Created: {formatDate(alert.createdAt)}</p>
+                                            </div>
+                                            <div className="flex space-x-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    to={`/risk/assessments/${alert.assessmentId}`}
+                                                >
+                                                    View Assessment
+                                                </Button>
+                                                {!alert.isResolved && (
+                                                    <Button
+                                                        variant="primary"
+                                                        size="sm"
+                                                        to={`/risk/alerts/${alert.id}/resolve`}
+                                                    >
+                                                        Resolve
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {alert.isResolved && (
+                                            <div className="mt-2 p-2 bg-secondary-50 rounded-md">
+                                                <div className="flex items-center">
+                                                    <span className="text-xs text-secondary-500">
+                                                        Resolved on {formatDate(alert.resolvedAt)} by {alert.resolvedByUsername || 'Unknown'}
+                                                    </span>
+                                                </div>
+                                                {alert.resolutionNotes && (
+                                                    <p className="mt-1 text-sm text-secondary-700">
+                                                        {alert.resolutionNotes}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            ) : (
+                <div className="bg-white shadow overflow-hidden sm:rounded-md p-6 text-center">
+                    <div className="py-6">
+                        <FiAlertTriangle className="mx-auto h-12 w-12 text-secondary-400" />
+                        <h3 className="mt-2 text-sm font-medium text-secondary-900">No alerts found</h3>
+                        <p className="mt-1 text-sm text-secondary-500">
+                            {Object.values(filters).some(f => f !== '')
+                                ? 'Try changing your filter criteria.'
+                                : 'No risk alerts have been generated for any assessments.'}
+                        </p>
+                    </div>
+                </div>
+            )}
+
             {/* Pagination */}
             {totalPages > 1 && (
                 <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-secondary-200 sm:px-6">
@@ -318,113 +428,3 @@ const AlertsList = () => {
 };
 
 export default AlertsList;
-
-{/* Results */}
-{alerts.length > 0 ? (
-    <div className="bg-white shadow overflow-hidden rounded-md">
-        <ul className="divide-y divide-secondary-200">
-            {alerts.map((alert) => (
-                <li key={alert.id} className="px-6 py-4">
-                    <div className="flex items-start">
-                        <div className={`mt-1 h-3 w-3 rounded-full flex-shrink-0 ${
-                            alert.severity === 'HIGH' || alert.severity === 'VERY_HIGH'
-                                ? 'bg-danger-500'
-                                : alert.severity === 'MEDIUM'
-                                    ? 'bg-warning-500'
-                                    : 'bg-success-500'
-                        }`}
-                        />
-                        <div className="ml-3 flex-1">
-                            <div className="flex items-center justify-between">
-                                <h4 className="text-sm font-medium text-secondary-900">{alert.message}</h4>
-                                <div className="flex items-center">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                    alert.severity === 'HIGH' || alert.severity === 'VERY_HIGH'
-                                                        ? 'bg-danger-100 text-danger-800'
-                                                        : alert.severity === 'MEDIUM'
-                                                            ? 'bg-warning-100 text-warning-800'
-                                                            : 'bg-success-100 text-success-800'
-                                                }`}>
-                                                    {alert.severity}
-                                                </span>
-                                    {alert.isResolved && (
-                                        <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-100 text-success-800">
-                                                        <FiCheck className="mr-1 h-3 w-3" />
-                                                        Resolved
-                                                    </span>
-                                    )}
-                                    {!alert.isResolved && (
-                                        <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-danger-100 text-danger-800">
-                                                        <FiX className="mr-1 h-3 w-3" />
-                                                        Unresolved
-                                                    </span>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="mt-1 flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-secondary-500">
-                                        <Link
-                                            to={`/companies/${alert.companyId}`}
-                                            className="text-primary-600 hover:text-primary-500"
-                                        >
-                                            {alert.companyName}
-                                        </Link>
-                                        <span className="mx-1">•</span>
-                                        <span>{alert.alertType}</span>
-                                    </p>
-                                    <p className="mt-1 text-xs text-secondary-500">Created: {formatDate(alert.createdAt)}</p>
-                                </div>
-                                <div className="flex space-x-2">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        to={`/risk/assessments/${alert.assessmentId}`}
-                                    >
-                                        View Assessment
-                                    </Button>
-                                    {!alert.isResolved && (
-                                        <Button
-                                            variant="primary"
-                                            size="sm"
-                                            to={`/risk/alerts/${alert.id}/resolve`}
-                                        >
-                                            Resolve
-                                        </Button>
-                                    )}
-                                </div>
-                            </div>
-
-                            {alert.isResolved && (
-                                <div className="mt-2 p-2 bg-secondary-50 rounded-md">
-                                    <div className="flex items-center">
-                                                    <span className="text-xs text-secondary-500">
-                                                        Resolved on {formatDate(alert.resolvedAt)} by {alert.resolvedByUsername || 'Unknown'}
-                                                    </span>
-                                    </div>
-                                    {alert.resolutionNotes && (
-                                        <p className="mt-1 text-sm text-secondary-700">
-                                            {alert.resolutionNotes}
-                                        </p>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </li>
-            ))}
-        </ul>
-    </div>
-) : (
-    <div className="bg-white shadow overflow-hidden sm:rounded-md p-6 text-center">
-        <div className="py-6">
-            <FiAlertTriangle className="mx-auto h-12 w-12 text-secondary-400" />
-            <h3 className="mt-2 text-sm font-medium text-secondary-900">No alerts found</h3>
-            <p className="mt-1 text-sm text-secondary-500">
-                {Object.values(filters).some(f => f !== '')
-                    ? 'Try changing your filter criteria.'
-                    : 'No risk alerts have been generated for any assessments.'}
-            </p>
-        </div>
-    </div>
-)}
