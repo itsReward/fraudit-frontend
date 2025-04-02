@@ -49,7 +49,7 @@ const DocumentUploader = ({ onUploadSuccess, onCancel, companyId: initialCompany
             setFile(e.target.files[0]);
             setError(null);
         }
-        export default DocumentUploader;
+       // export default DocumentUploader;
 
         // Handle company change
         const handleCompanyChange = (e) => {
@@ -396,4 +396,6 @@ const DocumentUploader = ({ onUploadSuccess, onCancel, companyId: initialCompany
             </Card>
         );
     };
-}
+};
+
+export default DocumentUploader;

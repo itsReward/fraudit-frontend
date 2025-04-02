@@ -23,6 +23,10 @@ const GenerateReport = React.lazy(() => import('./pages/reports/GenerateReport')
 const UsersList = React.lazy(() => import('./pages/users/UsersList').then(module => ({ default: module.default })));
 const UserForm = React.lazy(() => import('./pages/users/UserForm').then(module => ({ default: module.default })));
 const Settings = React.lazy(() => import('./pages/settings/Settings').then(module => ({ default: module.default })));
+const DocumentsList = React.lazy(() => import('./pages/documents/DocumentsList').then(module => ({ default: module.default })));
+const DocumentDetail = React.lazy(() => import('./pages/documents/DocumentDetail').then(module => ({ default: module.default })));
+const StatementDocuments = React.lazy(() => import('./pages/documents/StatementDocuments').then(module => ({ default: module.default })));
+
 
 // Protected route wrapper
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
@@ -136,6 +140,11 @@ function App() {
 
                 {/* Fallback route */}
                 <Route path="*" element={<Navigate to="/" replace />} />
+
+                {/* Documents */}
+                <Route path="documents" element={<DocumentsList />} />
+                <Route path="documents/:id" element={<DocumentDetail />} />
+                <Route path="documents/statement/:statementId" element={<StatementDocuments />} />
             </Routes>
         </Suspense>
     );
