@@ -190,15 +190,20 @@ const routes = [
                 allowedRoles: [ROLES.ADMIN, ROLES.ANALYST]
             },
 
-            // Documents (placeholder based on sidebar)
+            // Documents routes
             {
                 path: 'documents',
-                element: <div>Documents Page</div>,
+                element: <DocumentsList />,
+                allowedRoles: [ROLES.ADMIN, ROLES.REGULATOR, ROLES.AUDITOR, ROLES.ANALYST]
+            },
+            {
+                path: 'documents/:id',
+                element: <DocumentDetail />,
                 allowedRoles: [ROLES.ADMIN, ROLES.REGULATOR, ROLES.AUDITOR, ROLES.ANALYST]
             },
             {
                 path: 'documents/statement/:statementId',
-                element: <div>Statement Documents Page</div>,
+                element: <StatementDocuments />,
                 allowedRoles: [ROLES.ADMIN, ROLES.REGULATOR, ROLES.AUDITOR, ROLES.ANALYST]
             },
 
