@@ -26,7 +26,9 @@ const Settings = React.lazy(() => import('./pages/settings/Settings').then(modul
 const DocumentsList = React.lazy(() => import('./pages/documents/DocumentsList').then(module => ({ default: module.default })));
 const DocumentDetail = React.lazy(() => import('./pages/documents/DocumentDetail').then(module => ({ default: module.default })));
 const StatementDocuments = React.lazy(() => import('./pages/documents/StatementDocuments').then(module => ({ default: module.default })));
-
+const MLModelsList = React.lazy(() => import('./pages/ml/MLModelsList').then(module => ({ default: module.default })));
+const MLModelForm = React.lazy(() => import('./pages/ml/MLModelForm').then(module => ({ default: module.default })));
+const MLModelPerformance = React.lazy(() => import('./pages/ml/MLModelPerformance').then(module => ({ default: module.default })));
 
 // Protected route wrapper
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
@@ -136,15 +138,28 @@ function App() {
 
                     {/* Settings */}
                     <Route path="settings" element={<Settings />} />
+
+                    {/* Documents */}
+                    <Route path="documents" element={<DocumentsList />} />
+                    <Route path="documents/:id" element={<DocumentDetail />} />
+                    <Route path="documents/statement/:statementId" element={<StatementDocuments />} />
+
+                    {/* ML Models */}
+                    <Route path="ml">
+                        <Route path="models">
+                            <Route index element={<MLModelsList />} />
+                            <Route path=":id/edit" element={<MLModelForm />} />
+                            <Route path="new" element={<MLModelForm />} />
+                            <Route path="performance" element={<MLModelPerformance />} />
+                        </Route>
+                    </Route>
+
                 </Route>
 
                 {/* Fallback route */}
                 <Route path="*" element={<Navigate to="/" replace />} />
 
-                {/* Documents */}
-                <Route path="documents" element={<DocumentsList />} />
-                <Route path="documents/:id" element={<DocumentDetail />} />
-                <Route path="documents/statement/:statementId" element={<StatementDocuments />} />
+
             </Routes>
         </Suspense>
     );
