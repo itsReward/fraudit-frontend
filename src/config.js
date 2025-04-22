@@ -1,12 +1,13 @@
-// src/config.js
+// src/config.js - Updated configuration
 const config = {
     // API configuration
     api: {
         // Base URL for API endpoints
-        baseUrl: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+        baseUrl: process.env.REACT_APP_API_URL || 'http://localhost:5001/api',
 
         // Enable demo mode (no backend required)
-        demoMode: true,
+        // Set to false when connecting to a real backend
+        demoMode: process.env.REACT_APP_DEMO_MODE === 'false' || false,
 
         // Demo mode settings
         demo: {
@@ -24,7 +25,17 @@ const config = {
     app: {
         name: 'Fraudit',
         version: '1.0.0',
-        description: 'Financial Fraud Detection System'
+        description: 'Financial Fraud Detection System for Zimbabwe Stock Exchange',
+
+        // Toast settings
+        toast: {
+            position: 'top-right',
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true
+        }
     }
 };
 

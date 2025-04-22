@@ -1,8 +1,7 @@
-// src/contexts/AuthContext.jsx
+// src/contexts/AuthContext.jsx - Updated to use our auth service
 import React, { createContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import jwt_decode from 'jwt-decode';
-import { login, register, refreshToken } from '../api/auth';
+import { login, register, refreshToken, logout as apiLogout, getUserFromToken, isTokenExpired } from '../api/auth';
 import config from '../config';
 
 const AuthContext = createContext(null);
@@ -33,15 +32,12 @@ export const AuthProvider = ({ children }) => {
                         }
                     } else {
                         // Production mode - validate token
-                        const decodedToken = jwt_decode(token);
-                        const currentTime = Date.now() / 1000;
-
-                        if (decodedToken.exp < currentTime) {
+                        if (isTokenExpired(token)) {
                             // Token is expired, try to refresh
                             if (refreshTokenValue) {
                                 try {
                                     const response = await refreshToken(refreshTokenValue);
-                                    handleAuthSuccess(response.data);
+                                    handleAuthSuccess(response.data.data);
                                 } catch (error) {
                                     // Refresh token is invalid, logout
                                     handleLogout();
@@ -52,7 +48,8 @@ export const AuthProvider = ({ children }) => {
                             }
                         } else {
                             // Token is valid
-                            setUser(decodedToken);
+                            const decodedUser = getUserFromToken(token);
+                            setUser(decodedUser);
                             setIsAuthenticated(true);
                         }
                     }
@@ -82,7 +79,7 @@ export const AuthProvider = ({ children }) => {
                 localStorage.setItem('refreshToken', data.refreshToken);
             }
 
-            setUser(jwt_decode(data.token));
+            setUser(getUserFromToken(data.token));
         }
 
         setIsAuthenticated(true);
@@ -118,6 +115,8 @@ export const AuthProvider = ({ children }) => {
         try {
             setLoading(true);
             const response = await register(userData);
+            // Navigate to login page after successful registration
+            navigate('/login', { state: { message: 'Registration successful! Please login.' } });
             return response;
         } catch (error) {
             setError(error.response?.data?.message || 'An error occurred during registration');
@@ -127,18 +126,28 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const handleLogout = () => {
-        if (config.api.demoMode) {
-            localStorage.removeItem('demo_token');
-            localStorage.removeItem('demo_user');
-        } else {
-            localStorage.removeItem('token');
-            localStorage.removeItem('refreshToken');
-        }
+    const handleLogout = async () => {
+        try {
+            if (!config.api.demoMode) {
+                // Call logout API only in production mode
+                await apiLogout();
+            }
+        } catch (error) {
+            console.error('Error during logout:', error);
+        } finally {
+            // Clear storage and state regardless of API call success
+            if (config.api.demoMode) {
+                localStorage.removeItem('demo_token');
+                localStorage.removeItem('demo_user');
+            } else {
+                localStorage.removeItem('token');
+                localStorage.removeItem('refreshToken');
+            }
 
-        setUser(null);
-        setIsAuthenticated(false);
-        navigate('/login');
+            setUser(null);
+            setIsAuthenticated(false);
+            navigate('/login');
+        }
     };
 
     const value = {
