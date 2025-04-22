@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { getCompanies } from '../../api/companies';
@@ -15,11 +15,47 @@ const CompaniesList = () => {
     const [sector, setSector] = useState('');
     const [page, setPage] = useState(0);
     const [size, setSize] = useState(10);
+    const [companies, setCompanies] = useState([]);
+    const [pagination, setPagination] = useState({
+        totalPages: 0,
+        totalElements: 0
+    });
 
     // Fetch companies with filters
     const { data, isLoading, error, refetch } = useQuery(
         ['companies', { page, size, sector }],
-        () => getCompanies({ page, size, sector })
+        () => getCompanies({ page, size, sector }),
+        {
+            onSuccess: (response) => {
+                console.log("Raw API response:", response);
+
+                // Extract companies and pagination from the response
+                try {
+                    // Get the data from the API response
+                    const responseData = response.data;
+
+                    // Extract the content (companies) and pagination
+                    if (responseData.data && responseData.data.content) {
+                        setCompanies(responseData.data.content);
+                        setPagination({
+                            totalPages: responseData.data.totalPages || 0,
+                            totalElements: responseData.data.totalElements || 0
+                        });
+                        console.log("Successfully extracted companies:", responseData.data.content);
+                    } else {
+                        console.error("Unexpected API response structure:", responseData);
+                        setCompanies([]);
+                    }
+                } catch (err) {
+                    console.error("Error processing API response:", err);
+                    setCompanies([]);
+                }
+            },
+            onError: (err) => {
+                console.error("API request error:", err);
+                setCompanies([]);
+            }
+        }
     );
 
     // Handle search input changes
@@ -41,11 +77,6 @@ const CompaniesList = () => {
     // Check if user has create/edit permissions
     const canManageCompanies = user && ['ADMIN', 'REGULATOR'].includes(user.role);
 
-    // Get companies data
-    const companies = data?.data?.data?.content || [];
-    const totalPages = data?.data?.data?.totalPages || 0;
-    const totalElements = data?.data?.data?.totalElements || 0;
-
     // Filter companies by search term (client-side filtering for demo)
     const filteredCompanies = searchTerm
         ? companies.filter(company =>
@@ -53,6 +84,11 @@ const CompaniesList = () => {
             company.stockCode.toLowerCase().includes(searchTerm.toLowerCase())
         )
         : companies;
+
+    // Debug rendering
+    useEffect(() => {
+        console.log("Companies state:", companies);
+    }, [companies]);
 
     if (isLoading) {
         return (
@@ -124,6 +160,8 @@ const CompaniesList = () => {
                             <option value="Retail">Retail</option>
                             <option value="Energy">Energy</option>
                             <option value="Mining">Mining</option>
+                            <option value="Construction">Construction</option>
+                            <option value="Telecommunications">Telecommunications</option>
                             <option value="Other">Other</option>
                         </select>
                     </div>
@@ -165,9 +203,6 @@ const CompaniesList = () => {
                                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
                                         Listing Date
                                     </th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
-                                        Risk Level
-                                    </th>
                                     <th scope="col" className="relative px-6 py-3">
                                         <span className="sr-only">Actions</span>
                                     </th>
@@ -175,7 +210,7 @@ const CompaniesList = () => {
                                 </thead>
                                 <tbody className="bg-white divide-y divide-secondary-200">
                                 {filteredCompanies.map((company) => (
-                                    <tr key={company.id}>
+                                    <tr key={company.id} className="hover:bg-secondary-50">
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="font-medium text-secondary-900">{company.name}</div>
                                         </td>
@@ -187,21 +222,6 @@ const CompaniesList = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-secondary-500">
                                             {company.listingDate ? new Date(company.listingDate).toLocaleDateString() : 'N/A'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {company.riskLevel ? (
-                                                <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                                                    company.riskLevel === 'HIGH' || company.riskLevel === 'VERY_HIGH'
-                                                        ? 'bg-danger-100 text-danger-800'
-                                                        : company.riskLevel === 'MEDIUM'
-                                                            ? 'bg-warning-100 text-warning-800'
-                                                            : 'bg-success-100 text-success-800'
-                                                }`}>
-                                                    {company.riskLevel}
-                                                </span>
-                                            ) : (
-                                                <span className="text-secondary-400">Not assessed</span>
-                                            )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <div className="flex items-center justify-end space-x-2">
@@ -239,7 +259,7 @@ const CompaniesList = () => {
                         </div>
 
                         {/* Pagination */}
-                        {totalPages > 1 && (
+                        {pagination.totalPages > 1 && (
                             <div className="px-4 py-3 flex items-center justify-between border-t border-secondary-200 sm:px-6">
                                 <div className="flex-1 flex justify-between sm:hidden">
                                     <Button
@@ -252,7 +272,7 @@ const CompaniesList = () => {
                                     <Button
                                         variant="secondary"
                                         onClick={() => handlePageChange(page + 1)}
-                                        disabled={page >= totalPages - 1}
+                                        disabled={page >= pagination.totalPages - 1}
                                     >
                                         Next
                                     </Button>
@@ -262,9 +282,9 @@ const CompaniesList = () => {
                                         <p className="text-sm text-secondary-700">
                                             Showing <span className="font-medium">{page * size + 1}</span> to{' '}
                                             <span className="font-medium">
-                                                {Math.min((page + 1) * size, totalElements)}
+                                                {Math.min((page + 1) * size, pagination.totalElements)}
                                             </span>{' '}
-                                            of <span className="font-medium">{totalElements}</span> results
+                                            of <span className="font-medium">{pagination.totalElements}</span> results
                                         </p>
                                     </div>
                                     <div>
@@ -284,25 +304,25 @@ const CompaniesList = () => {
                                                 </svg>
                                             </button>
 
-                                            {[...Array(totalPages).keys()].map((pageNum) => (
+                                            {[...Array(pagination.totalPages).keys()].map((pageNumber) => (
                                                 <button
-                                                    key={pageNum}
-                                                    onClick={() => handlePageChange(pageNum)}
+                                                    key={pageNumber}
+                                                    onClick={() => handlePageChange(pageNumber)}
                                                     className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                                                        pageNum === page
+                                                        pageNumber === page
                                                             ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
                                                             : 'bg-white border-secondary-300 text-secondary-500 hover:bg-secondary-50'
                                                     }`}
                                                 >
-                                                    {pageNum + 1}
+                                                    {pageNumber + 1}
                                                 </button>
                                             ))}
 
                                             <button
                                                 onClick={() => handlePageChange(page + 1)}
-                                                disabled={page >= totalPages - 1}
+                                                disabled={page >= pagination.totalPages - 1}
                                                 className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-secondary-300 bg-white text-sm font-medium ${
-                                                    page >= totalPages - 1
+                                                    page >= pagination.totalPages - 1
                                                         ? 'text-secondary-300 cursor-not-allowed'
                                                         : 'text-secondary-500 hover:bg-secondary-50 cursor-pointer'
                                                 }`}

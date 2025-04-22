@@ -1,4 +1,4 @@
-// src/api/index.js - Updated to handle API integration
+// src/api/index.js - Fixed API configuration
 
 import axios from 'axios';
 import config from '../config';
@@ -6,11 +6,17 @@ import { handleUnauthorizedError } from '../utils/auth';
 
 // Create axios instance with configuration
 const api = axios.create({
-    baseURL: config.api.baseUrl,
+    baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5001/api',
     headers: {
         'Content-Type': 'application/json',
     },
+    // Add timeout to prevent infinite loading
+    timeout: 15000, // 15 seconds
 });
+
+// Add some debugging
+console.log("API baseURL:", api.defaults.baseURL);
+console.log("Demo mode:", process.env.REACT_APP_DEMO_MODE === 'true' ? 'Yes' : 'No');
 
 // Request interceptor to add auth token to all requests
 api.interceptors.request.use(
@@ -19,15 +25,27 @@ api.interceptors.request.use(
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+        // Debug
+        console.log(`API Request: ${config.method.toUpperCase()} ${config.url}`, config.params || {});
         return config;
     },
-    (error) => Promise.reject(error)
+    (error) => {
+        console.error("API Request Error:", error);
+        return Promise.reject(error);
+    }
 );
 
 // Response interceptor to handle common errors
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        // Debug successful responses
+        console.log(`API Response [${response.status}]:`, response.data);
+        return response;
+    },
     async (error) => {
+        // Debug failed responses
+        console.error(`API Error Response [${error.response?.status || 'Network Error'}]:`, error.response?.data || error.message);
+
         const originalRequest = error.config;
 
         // Handle 401 Unauthorized errors
@@ -38,7 +56,7 @@ api.interceptors.response.use(
                 // Try to refresh the token if we have a refresh token
                 const refreshToken = localStorage.getItem('refreshToken');
                 if (refreshToken) {
-                    const response = await axios.post(`${config.api.baseUrl}/auth/refresh`, {
+                    const response = await axios.post(`${api.defaults.baseURL}/auth/refresh`, {
                         refreshToken
                     });
 
@@ -61,6 +79,7 @@ api.interceptors.response.use(
                 handleUnauthorizedError();
                 return Promise.reject(error);
             } catch (refreshError) {
+                console.error("Token refresh error:", refreshError);
                 handleUnauthorizedError();
                 return Promise.reject(refreshError);
             }
@@ -71,10 +90,5 @@ api.interceptors.response.use(
     }
 );
 
-// For demo mode, use mock service
-if (config.api.demoMode) {
-    console.log('🚀 Running in demo mode - no backend required');
-}
-
-// Default export is either the real API or the mock service
+// Default export
 export default api;

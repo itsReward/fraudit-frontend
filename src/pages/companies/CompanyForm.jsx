@@ -33,12 +33,16 @@ const CompanyForm = () => {
     // Create mutation for adding/updating company
     const mutation = useMutation(
         (values) => {
+            // Add debug logs
+            console.log("Sending company data:", values);
             return isEditMode
                 ? updateCompany(id, values)
                 : createCompany(values);
         },
         {
-            onSuccess: () => {
+            onSuccess: (response) => {
+                // Add debug log
+                console.log("Mutation success response:", response);
                 setSuccess(true);
                 queryClient.invalidateQueries('companies');
 
@@ -48,6 +52,7 @@ const CompanyForm = () => {
                 }, 1500);
             },
             onError: (err) => {
+                console.error("Mutation error:", err);
                 setError(err.response?.data?.message || 'Failed to save company');
             },
         }
@@ -85,8 +90,13 @@ const CompanyForm = () => {
 
     // Update form values when company data is fetched in edit mode
     useEffect(() => {
-        if (isEditMode && companyData?.data?.data) {
-            const company = companyData.data.data;
+        if (isEditMode && companyData) {
+            // Add debug log
+            console.log("Setting form values from company data:", companyData);
+
+            // Handle different response structures
+            const company = companyData.data?.data || companyData.data || {};
+
             formik.setValues({
                 name: company.name || '',
                 stockCode: company.stockCode || '',
@@ -221,6 +231,8 @@ const CompanyForm = () => {
                                 <option value="Retail">Retail</option>
                                 <option value="Energy">Energy</option>
                                 <option value="Mining">Mining</option>
+                                <option value="Construction">Construction</option>
+                                <option value="Telecommunications">Telecommunications</option>
                                 <option value="Other">Other</option>
                             </select>
                         </div>

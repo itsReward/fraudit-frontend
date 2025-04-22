@@ -1,4 +1,4 @@
-// src/api/companies.js - Integrated with API endpoints
+// src/api/companies.js - Fixed to handle both mock and real API responses
 import api from './index';
 import config from '../config';
 import mockService from './mockService';
@@ -15,9 +15,22 @@ const service = config.api.demoMode ? mockService.companies : api;
  * @returns {Promise<Object>} - API response
  */
 export const getCompanies = (params) => {
+    console.log("getCompanies called with params:", params);
+
+    // Create a copy of the params object to avoid modifying the original
+    const cleanParams = { ...params };
+
+    // Remove sector parameter if it's an empty string
+    if (cleanParams.sector === '') {
+        delete cleanParams.sector;
+    }
+
+    console.log("Sending cleaned params:", cleanParams);
+
+    // Handle the request appropriately based on demo mode
     return service.getCompanies ?
-        service.getCompanies(params) :
-        api.get('/companies', { params });
+        service.getCompanies(cleanParams) :
+        api.get('/companies', { params: cleanParams });
 };
 
 /**
