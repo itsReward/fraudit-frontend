@@ -82,15 +82,16 @@ const routes = [
                 element: <CompaniesList />,
                 allowedRoles: [ROLES.ADMIN, ROLES.REGULATOR, ROLES.AUDITOR, ROLES.ANALYST]
             },
-            {
-                path: 'companies/:id',
-                element: <CompanyDetail />,
-                allowedRoles: [ROLES.ADMIN, ROLES.REGULATOR, ROLES.AUDITOR, ROLES.ANALYST]
-            },
+            // FIXED ORDER: "new" route should come BEFORE the ":id" route
             {
                 path: 'companies/new',
                 element: <CompanyForm />,
                 allowedRoles: [ROLES.ADMIN, ROLES.REGULATOR]
+            },
+            {
+                path: 'companies/:id',
+                element: <CompanyDetail />,
+                allowedRoles: [ROLES.ADMIN, ROLES.REGULATOR, ROLES.AUDITOR, ROLES.ANALYST]
             },
             {
                 path: 'companies/:id/edit',
@@ -98,20 +99,20 @@ const routes = [
                 allowedRoles: [ROLES.ADMIN, ROLES.REGULATOR]
             },
 
-            // Statements
+            // Statements - also fix the order here
             {
                 path: 'statements',
                 element: <StatementsList />,
                 allowedRoles: [ROLES.ADMIN, ROLES.REGULATOR, ROLES.AUDITOR, ROLES.ANALYST]
             },
             {
-                path: 'statements/:id',
-                element: <StatementDetail />,
+                path: 'statements/new',
+                element: <StatementForm />,
                 allowedRoles: [ROLES.ADMIN, ROLES.REGULATOR, ROLES.AUDITOR, ROLES.ANALYST]
             },
             {
-                path: 'statements/new',
-                element: <StatementForm />,
+                path: 'statements/:id',
+                element: <StatementDetail />,
                 allowedRoles: [ROLES.ADMIN, ROLES.REGULATOR, ROLES.AUDITOR, ROLES.ANALYST]
             },
             {
@@ -159,21 +160,21 @@ const routes = [
                 allowedRoles: [ROLES.ADMIN, ROLES.REGULATOR, ROLES.AUDITOR, ROLES.ANALYST]
             },
 
-            // Users
+            // Users - also fix the order here
             {
                 path: 'users',
                 element: <UsersList />,
                 allowedRoles: [ROLES.ADMIN, ROLES.REGULATOR]
             },
             {
-                path: 'users/:id',
-                element: <UserForm />,
-                allowedRoles: [ROLES.ADMIN, ROLES.REGULATOR]
-            },
-            {
                 path: 'users/new',
                 element: <UserForm />,
                 allowedRoles: [ROLES.ADMIN]
+            },
+            {
+                path: 'users/:id',
+                element: <UserForm />,
+                allowedRoles: [ROLES.ADMIN, ROLES.REGULATOR]
             },
 
             // Settings
@@ -190,7 +191,12 @@ const routes = [
                 allowedRoles: [ROLES.ADMIN, ROLES.ANALYST]
             },
 
-            // Documents routes
+            // Documents routes - make sure specific routes come before dynamic ones
+            {
+                path: 'documents/statement/:statementId',
+                element: <StatementDocuments />,
+                allowedRoles: [ROLES.ADMIN, ROLES.REGULATOR, ROLES.AUDITOR, ROLES.ANALYST]
+            },
             {
                 path: 'documents',
                 element: <DocumentsList />,
@@ -199,11 +205,6 @@ const routes = [
             {
                 path: 'documents/:id',
                 element: <DocumentDetail />,
-                allowedRoles: [ROLES.ADMIN, ROLES.REGULATOR, ROLES.AUDITOR, ROLES.ANALYST]
-            },
-            {
-                path: 'documents/statement/:statementId',
-                element: <StatementDocuments />,
                 allowedRoles: [ROLES.ADMIN, ROLES.REGULATOR, ROLES.AUDITOR, ROLES.ANALYST]
             },
 

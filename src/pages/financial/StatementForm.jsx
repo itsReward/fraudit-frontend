@@ -65,7 +65,7 @@ const StatementForm = () => {
 
     // Form validation schema
     const validationSchema = Yup.object({
-        fiscalYearId: Yup.number().required('Fiscal year is required'),
+        fiscalYearId: Yup.string().required('Fiscal year is required'),
         statementType: Yup.string().required('Statement type is required'),
         period: Yup.string().nullable(),
     });
@@ -102,7 +102,8 @@ const StatementForm = () => {
         }
     }, [isEditMode, statementData, preselectedCompanyId, formik.setValues]);
 
-    if (fetchLoading || companiesLoading) {
+    // Only show the loading state if we're in edit mode AND data is loading
+    if (isEditMode && fetchLoading) {
         return (
             <div className="flex items-center justify-center h-64">
                 <Loading />

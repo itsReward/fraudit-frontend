@@ -23,7 +23,7 @@ const CompanyForm = () => {
         ['company', id],
         () => getCompanyById(id),
         {
-            enabled: isEditMode,
+            enabled: isEditMode, // Only fetch if we're in edit mode
             onError: (err) => {
                 setError(err.response?.data?.message || 'Failed to fetch company data');
             },
@@ -33,7 +33,6 @@ const CompanyForm = () => {
     // Create mutation for adding/updating company
     const mutation = useMutation(
         (values) => {
-            // Add debug logs
             console.log("Sending company data:", values);
             return isEditMode
                 ? updateCompany(id, values)
@@ -41,7 +40,6 @@ const CompanyForm = () => {
         },
         {
             onSuccess: (response) => {
-                // Add debug log
                 console.log("Mutation success response:", response);
                 setSuccess(true);
                 queryClient.invalidateQueries('companies');
@@ -91,7 +89,6 @@ const CompanyForm = () => {
     // Update form values when company data is fetched in edit mode
     useEffect(() => {
         if (isEditMode && companyData) {
-            // Add debug log
             console.log("Setting form values from company data:", companyData);
 
             // Handle different response structures
@@ -107,7 +104,8 @@ const CompanyForm = () => {
         }
     }, [isEditMode, companyData, formik.setValues]);
 
-    if (fetchLoading) {
+    // This is the key change: Only show loading state if we're in edit mode AND loading
+    if (isEditMode && fetchLoading) {
         return (
             <div className="flex items-center justify-center h-64">
                 <Loading />

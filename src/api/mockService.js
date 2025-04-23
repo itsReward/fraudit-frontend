@@ -837,6 +837,7 @@ export const authAPI = {
 };
 
 // Companies API
+// Companies API
 export const companiesAPI = {
     getCompanies: async (params) => {
         await randomDelay();
@@ -895,43 +896,110 @@ export const companiesAPI = {
     createCompany: async (companyData) => {
         await randomDelay();
 
-        // Check if company name or stock code already exists
-        if (companies.some(c => c.name === companyData.name)) {
-            throw {
-                response: {
-                    data: {
-                        success: false,
-                        message: 'Company name already exists'
+        try {
+            // Check if company name or stock code already exists
+            if (companies.some(c => c.name === companyData.name)) {
+                throw {
+                    response: {
+                        data: {
+                            success: false,
+                            message: 'Company name already exists'
+                        }
                     }
-                }
-            };
-        }
+                };
+            }
 
-        if (companies.some(c => c.stockCode === companyData.stockCode)) {
-            throw {
-                response: {
-                    data: {
-                        success: false,
-                        message: 'Stock code already exists'
+            if (companies.some(c => c.stockCode === companyData.stockCode)) {
+                throw {
+                    response: {
+                        data: {
+                            success: false,
+                            message: 'Stock code already exists'
+                        }
                     }
-                }
+                };
+            }
+
+            // Create new company
+            const newCompany = {
+                id: companies.length + 1,
+                name: companyData.name,
+                stockCode: companyData.stockCode,
+                sector: companyData.sector || '',
+                listingDate: companyData.listingDate || new Date().toISOString().split('T')[0],
+                description: companyData.description || ''
             };
+
+            // Add to mock database
+            companies.push(newCompany);
+
+            return createApiResponse(newCompany, 'Company created successfully');
+        } catch (error) {
+            // Pass through the error
+            throw error;
         }
+    },
 
-        // Create new company
-        const newCompany = {
-            id: companies.length + 1,
-            name: companyData.name,
-            stockCode: companyData.stockCode,
-            sector: companyData.sector,
-            listingDate: companyData.listingDate,
-            description: companyData.description
-        };
+    updateCompany: async (id, companyData) => {
+        await randomDelay();
 
-        // Add to mock database
-        companies.push(newCompany);
+        try {
+            // Find the company
+            const companyIndex = companies.findIndex(c => c.id === parseInt(id));
 
-        return createApiResponse(newCompany, 'Company created successfully');
+            if (companyIndex === -1) {
+                throw {
+                    response: {
+                        data: {
+                            success: false,
+                            message: `Company not found with id: ${id}`
+                        }
+                    }
+                };
+            }
+
+            // Check if updated name or stock code conflicts with existing ones
+            if (companyData.name !== companies[companyIndex].name &&
+                companies.some(c => c.name === companyData.name)) {
+                throw {
+                    response: {
+                        data: {
+                            success: false,
+                            message: 'Company name already exists'
+                        }
+                    }
+                };
+            }
+
+            if (companyData.stockCode !== companies[companyIndex].stockCode &&
+                companies.some(c => c.stockCode === companyData.stockCode)) {
+                throw {
+                    response: {
+                        data: {
+                            success: false,
+                            message: 'Stock code already exists'
+                        }
+                    }
+                };
+            }
+
+            // Update company
+            const updatedCompany = {
+                ...companies[companyIndex],
+                name: companyData.name,
+                stockCode: companyData.stockCode,
+                sector: companyData.sector || companies[companyIndex].sector,
+                listingDate: companyData.listingDate || companies[companyIndex].listingDate,
+                description: companyData.description || companies[companyIndex].description
+            };
+
+            companies[companyIndex] = updatedCompany;
+
+            return createApiResponse(updatedCompany, 'Company updated successfully');
+        } catch (error) {
+            // Pass through the error
+            throw error;
+        }
     }
 };
 
