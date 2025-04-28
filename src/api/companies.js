@@ -97,7 +97,7 @@ export const deleteCompany = (id) => {
 export const getCompanyRiskProfile = (id) => {
     return service.getCompanyRiskProfile ?
         service.getCompanyRiskProfile(id) :
-        api.get(`/companies/${id}/risk`);
+        api.get(`/fraud-risk/assessments/${id}`);
 };
 
 /**

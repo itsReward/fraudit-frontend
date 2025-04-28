@@ -103,7 +103,7 @@ export const handleApiPagination = async (
 };
 
 /**
- * Format parameters for API query
+ * Format parameters for API query by removing empty values
  * @param {Object} params - Parameters to format
  * @returns {Object} - Formatted parameters
  */

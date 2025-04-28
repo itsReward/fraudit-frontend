@@ -5,36 +5,12 @@ import * as Yup from 'yup';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getStatementById, createStatement } from '../../api/financial';
 import { getCompanies } from '../../api/companies';
+import { getFiscalYearsByCompany, createFiscalYear } from '../../api/fiscalYears';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import Alert from '../../components/common/Alert';
 import Loading from '../../components/common/Loading';
 import { FiSave, FiX, FiPlus, FiCheck } from 'react-icons/fi';
-
-// Assuming these fiscal year API functions would exist:
-const createFiscalYear = (fiscalYearData) => {
-    // This would be replaced with an actual API call
-    console.log("Creating fiscal year:", fiscalYearData);
-    return Promise.resolve({
-        data: {
-            success: true,
-            message: "Fiscal year created successfully",
-            data: { id: Date.now(), ...fiscalYearData }
-        }
-    });
-};
-
-const getFiscalYearsByCompany = (companyId) => {
-    // This would be replaced with an actual API call
-    console.log("Fetching fiscal years for company:", companyId);
-    return Promise.resolve({
-        data: {
-            success: true,
-            message: "Fiscal years retrieved successfully",
-            data: [] // Empty for demonstration purposes
-        }
-    });
-};
 
 const StatementForm = () => {
     const { id } = useParams();
@@ -78,29 +54,59 @@ const StatementForm = () => {
             enabled: !!selectedCompanyId && !isEditMode,
             onError: (err) => {
                 console.error("Error fetching fiscal years:", err);
+                // Don't set an error state here as we still want the form to work
+                // even if there are no fiscal years yet
             }
         }
     );
 
     const companies = companiesData?.data?.data?.content || [];
-    const fiscalYears = fiscalYearsData?.data?.data || [];
+
+    // Fix for fiscalYears not being an array
+    const fiscalYears = Array.isArray(fiscalYearsData?.data?.data)
+        ? fiscalYearsData?.data?.data
+        : fiscalYearsData?.data?.data?.content || [];
+
+    console.log("Fiscal years data:", fiscalYearsData?.data?.data);
+    console.log("Fiscal years array:", fiscalYears);
 
     // Create fiscal year mutation
     const fiscalYearMutation = useMutation(
-        (values) => createFiscalYear(values),
+        (values) => {
+            console.log("Creating fiscal year with values:", values);
+            // Make sure companyId is a number
+            return createFiscalYear({
+                ...values,
+                companyId: parseInt(values.companyId, 10),
+                year: parseInt(values.year, 10)
+            });
+        },
         {
             onSuccess: (response) => {
-                const newFiscalYear = response.data.data;
-                setCreatedFiscalYear(newFiscalYear);
-                setShowFiscalYearForm(false);
+                console.log("Fiscal year creation response:", response);
 
-                // Update the statement form with the new fiscal year ID
-                statementFormik.setFieldValue('fiscalYearId', newFiscalYear.id.toString());
+                // Extract the created fiscal year data
+                const newFiscalYear = response.data?.data;
 
-                // Refetch fiscal years to update the dropdown
-                refetchFiscalYears();
+                if (newFiscalYear) {
+                    setCreatedFiscalYear(newFiscalYear);
+                    setShowFiscalYearForm(false);
+
+                    // Update the statement form with the new fiscal year ID
+                    statementFormik.setFieldValue('fiscalYearId', newFiscalYear.id.toString());
+
+                    // Invalidate queries to trigger a refetch
+                    queryClient.invalidateQueries(['fiscalYears', selectedCompanyId]);
+
+                    // Also manually trigger a refetch
+                    refetchFiscalYears();
+                } else {
+                    console.error("Unexpected response format:", response);
+                    setError("Unexpected response format when creating fiscal year");
+                }
             },
             onError: (err) => {
+                console.error("Fiscal year creation error:", err);
                 setError(err.response?.data?.message || 'Failed to create fiscal year');
             }
         }
@@ -118,7 +124,8 @@ const StatementForm = () => {
             return createStatement(payload);
         },
         {
-            onSuccess: () => {
+            onSuccess: (response) => {
+                console.log("Statement creation success:", response);
                 setSuccess(true);
                 queryClient.invalidateQueries('statements');
 
@@ -128,7 +135,7 @@ const StatementForm = () => {
                 }, 1500);
             },
             onError: (err) => {
-                console.error("Statement creation error:", err.response?.data);
+                console.error("Statement creation error:", err);
                 setError(err.response?.data?.message || 'Failed to save financial statement');
             },
         }
@@ -155,11 +162,8 @@ const StatementForm = () => {
         },
         validationSchema: fiscalYearValidationSchema,
         onSubmit: (values) => {
-            fiscalYearMutation.mutate({
-                ...values,
-                companyId: parseInt(values.companyId, 10),
-                year: parseInt(values.year, 10)
-            });
+            console.log("Fiscal year form submitted with values:", values);
+            fiscalYearMutation.mutate(values);
         },
         enableReinitialize: true
     });
@@ -192,7 +196,7 @@ const StatementForm = () => {
         if (isEditMode && statementData?.data?.data) {
             const statement = statementData.data.data;
             statementFormik.setValues({
-                fiscalYearId: statement.fiscalYearId || '',
+                fiscalYearId: statement.fiscalYearId ? statement.fiscalYearId.toString() : '',
                 statementType: statement.statementType || 'ANNUAL',
                 period: statement.period || '',
             });
@@ -294,6 +298,18 @@ const StatementForm = () => {
             {/* Step 2: Create or Select Fiscal Year */}
             {selectedCompanyId && (
                 <Card title="Step 2: Select or Create Fiscal Year">
+                    {error && (
+                        <Alert
+                            variant="danger"
+                            title="Error"
+                            dismissible
+                            onDismiss={() => setError(null)}
+                            className="mb-4"
+                        >
+                            {error}
+                        </Alert>
+                    )}
+
                     {showFiscalYearForm ? (
                         /* Fiscal Year Creation Form */
                         <form onSubmit={fiscalYearFormik.handleSubmit} className="space-y-4">
@@ -442,9 +458,9 @@ const StatementForm = () => {
                                             </option>
                                         )}
                                         {/* Show existing fiscal years */}
-                                        {fiscalYears.map(year => (
+                                        {Array.isArray(fiscalYears) && fiscalYears.map(year => (
                                             <option key={year.id} value={year.id}>
-                                                {year.year} ({year.startDate} - {year.endDate})
+                                                {year.year} ({year.startDate ? year.startDate.split('T')[0] : ''} - {year.endDate ? year.endDate.split('T')[0] : ''})
                                                 {year.isAudited ? ' - Audited' : ''}
                                             </option>
                                         ))}

@@ -93,9 +93,19 @@ export const getUserActivityStats = (userId) => {
  * @returns {Promise<Object>} - API response
  */
 export const getRiskAssessments = (params) => {
+    // Filter out empty parameters
+    const cleanParams = { ...params };
+
+    // Remove riskLevel if it's an empty string
+    if (cleanParams.riskLevel === '') {
+        delete cleanParams.riskLevel;
+    }
+
+    console.log("Sending risk assessment params:", cleanParams);
+
     return service.getRiskAssessments ?
-        service.getRiskAssessments(params) :
-        api.get('/fraud-risk/assessments', { params });
+        service.getRiskAssessments(cleanParams) :
+        api.get('/fraud-risk/assessments', { params: cleanParams });
 };
 
 /**
@@ -138,9 +148,15 @@ export const performRiskAssessment = (statementId) => {
  * @returns {Promise<Object>} - API response
  */
 export const getRiskAlerts = (params) => {
+    // Import the formatQueryParams function
+    const { formatQueryParams } = require('../utils/apiUtils');
+
+    // Clean the parameters by removing empty values
+    const cleanParams = formatQueryParams(params);
+
     return service.getRiskAlerts ?
-        service.getRiskAlerts(params) :
-        api.get('/fraud-risk/alerts', { params });
+        service.getRiskAlerts(cleanParams) :
+        api.get('/fraud-risk/alerts', { params: cleanParams });
 };
 
 /**
