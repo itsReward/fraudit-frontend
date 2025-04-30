@@ -140,7 +140,7 @@ const Dashboard = () => {
                         title="Fraud Risk Trend"
                         subtitle="Average risk score trend over time"
                     >
-                        <div className="h-80">
+                        <div className="h-96">
                             <RiskTrendChart data={trends || []} />
                         </div>
                     </Card>
@@ -150,7 +150,7 @@ const Dashboard = () => {
                         title="Fraud Indicators Distribution"
                         subtitle="Distribution of fraud indicators by risk level"
                     >
-                        <div className="h-80">
+                        <div className="h-96">
                             <RiskDistributionChart data={distribution || {}} />
                         </div>
                     </Card>
@@ -174,34 +174,36 @@ const Dashboard = () => {
                             </Link>
                         }
                     >
-                        <div className="space-y-4">
-                            {companies && companies.length > 0 ? (
-                                companies
-                                    .sort((a, b) => b.riskScore - a.riskScore)
-                                    .map((company, index) => (
-                                        <div key={index} className="flex items-center justify-between">
-                                            <div className="flex items-center">
-                                                <span className="text-secondary-500 text-sm w-5">{index + 1}.</span>
-                                                <div className="ml-2">
-                                                    <h4 className="text-sm font-medium text-secondary-900">
-                                                        <Link to={`/companies/${company.companyId}`} className="hover:text-primary-600">
-                                                            {company.companyName}
-                                                        </Link>
-                                                    </h4>
-                                                    <p className="text-xs text-secondary-500">{company.stockCode}</p>
+                        <div className="h-[calc(60vh-180px)] overflow-y-auto pr-1">
+                            <div className="space-y-4">
+                                {companies && companies.length > 0 ? (
+                                    companies
+                                        .sort((a, b) => b.riskScore - a.riskScore)
+                                        .map((company, index) => (
+                                            <div key={index} className="flex items-center justify-between">
+                                                <div className="flex items-center">
+                                                    <span className="text-secondary-500 text-sm w-5">{index + 1}.</span>
+                                                    <div className="ml-2">
+                                                        <h4 className="text-sm font-medium text-secondary-900">
+                                                            <Link to={`/companies/${company.companyId}`} className="hover:text-primary-600">
+                                                                {company.companyName}
+                                                            </Link>
+                                                        </h4>
+                                                        <p className="text-xs text-secondary-500">{company.stockCode}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center">
+                                                    <span className="text-sm font-medium mr-2">{company.riskScore}</span>
+                                                    <span className={`badge badge-${getRiskLevelColor(company.riskLevel)}`}>
+                                    {company.riskLevel}
+                                </span>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center">
-                                                <span className="text-sm font-medium mr-2">{company.riskScore}</span>
-                                                <span className={`badge badge-${getRiskLevelColor(company.riskLevel)}`}>
-                          {company.riskLevel}
-                        </span>
-                                            </div>
-                                        </div>
-                                    ))
-                            ) : (
-                                <p className="text-secondary-500 text-sm text-center py-4">No risk data available</p>
-                            )}
+                                        ))
+                                ) : (
+                                    <p className="text-secondary-500 text-sm text-center py-4">No risk data available</p>
+                                )}
+                            </div>
                         </div>
                     </Card>
 

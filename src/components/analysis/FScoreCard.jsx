@@ -56,7 +56,7 @@ const FScoreCard = ({ data }) => {
             <div
                 key={i}
                 className={`h-2 w-4 ${
-                    i <= (data.fScore || 0)
+                    i <= (data.fscore || 0)
                         ? `bg-${strengthColor}-500`
                         : 'bg-secondary-200'
                 } ${i > 1 ? 'ml-1' : ''}`}
@@ -75,7 +75,7 @@ const FScoreCard = ({ data }) => {
                     <div>
                         <p className="text-sm text-secondary-500">F-Score</p>
                         <div className="flex items-center">
-                            <p className="text-2xl font-bold mr-2">{data.fScore || 'N/A'}</p>
+                            <p className="text-2xl font-bold mr-2">{data.fscore || 'N/A'}</p>
                             <span className="text-xs text-secondary-500">out of 9</span>
                         </div>
                     </div>

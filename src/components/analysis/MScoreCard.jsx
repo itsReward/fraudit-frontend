@@ -59,7 +59,12 @@ const MScoreCard = ({ data }) => {
                 <div className="flex items-center justify-between">
                     <div>
                         <p className="text-sm text-secondary-500">M-Score</p>
-                        <p className="text-2xl font-bold">{data.mScore?.toFixed(2) || 'N/A'}</p>
+                        <p className="text-2xl font-bold">
+                            {data.mscore !== undefined && data.mscore !== null
+                                ? data.mscore.toFixed(2)
+                                : 'N/A'}
+                        </p>
+
                     </div>
                     <div className={`px-3 py-1 rounded-full bg-${probabilityColor}-100 text-${probabilityColor}-800`}>
                         {data.manipulationProbability || 'Unknown'}

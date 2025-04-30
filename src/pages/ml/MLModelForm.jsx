@@ -1,292 +1,387 @@
 // src/pages/ml/MLModelForm.jsx
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getModelById, createModel, updateModel } from '../../api/ml';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
-import Input from '../../components/common/Input';
-import Select from '../../components/common/Select';
 import Alert from '../../components/common/Alert';
 import Loading from '../../components/common/Loading';
-import { FiSave, FiX, FiPlus, FiTrash } from 'react-icons/fi';
-
-// Mock API functions - replace with actual API calls when implemented
-const mockModels = [
-    {
-        id: 1,
-        name: 'Earnings Manipulation Detector',
-        type: 'CLASSIFICATION',
-        algorithm: 'Random Forest',
-        accuracy: 0.92,
-        status: 'ACTIVE',
-        lastTrained: '2023-11-15T10:30:00Z',
-        description: 'Detects potential earnings manipulation based on financial ratios and statement patterns.',
-        createdAt: '2023-10-01T08:15:00Z',
-        updatedAt: '2023-11-15T10:30:00Z',
-        features: [
-            'Days Sales in Receivables Index',
-            'Gross Margin Index',
-            'Asset Quality Index',
-            'Sales Growth Index',
-            'Total Accruals to Total Assets'
-        ],
-        hyperparameters: {
-            n_estimators: 100,
-            max_depth: 10,
-            min_samples_split: 2,
-            min_samples_leaf: 1,
-            random_state: 42
-        },
-        author: 'Admin User'
-    },
-    {
-        id: 2,
-        name: 'Financial Distress Predictor',
-        type: 'CLASSIFICATION',
-        algorithm: 'XGBoost',
-        accuracy: 0.89,
-        status: 'ACTIVE',
-        lastTrained: '2023-11-10T14:20:00Z',
-        description: 'Predicts potential financial distress based on various financial indicators.',
-        createdAt: '2023-09-15T11:30:00Z',
-        updatedAt: '2023-11-10T14:20:00Z',
-        features: [
-            'Current Ratio',
-            'Debt to Equity Ratio',
-            'Return on Assets',
-            'Interest Coverage Ratio',
-            'Operating Cash Flow'
-        ],
-        hyperparameters: {
-            learning_rate: 0.1,
-            max_depth: 5,
-            n_estimators: 100,
-            subsample: 0.8,
-            colsample_bytree: 0.8,
-            random_state: 42
-        },
-        author: 'Analyst User'
-    },
-    {
-        id: 3,
-        name: 'Anomaly Detection System',
-        type: 'ANOMALY_DETECTION',
-        algorithm: 'Isolation Forest',
-        accuracy: 0.85,
-        status: 'INACTIVE',
-        lastTrained: '2023-10-20T09:45:00Z',
-        description: 'Identifies anomalies in financial statements and transaction patterns.',
-        createdAt: '2023-08-20T13:40:00Z',
-        updatedAt: '2023-10-20T09:45:00Z',
-        features: [
-            'Transaction Amount',
-            'Transaction Frequency',
-            'Account Activity Patterns',
-            'Time of Day',
-            'Historical Transaction Comparison'
-        ],
-        hyperparameters: {
-            n_estimators: 100,
-            max_samples: 'auto',
-            contamination: 0.1,
-            max_features: 1.0,
-            bootstrap: true,
-            random_state: 42
-        },
-        author: 'Admin User'
-    }
-];
-
-// Mock fetch function for getting model by ID
-const fetchModel = async (id) => {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const model = mockModels.find(m => m.id === parseInt(id));
-
-    if (!model) {
-        throw new Error('Model not found');
-    }
-
-    return { data: { data: model } };
-};
-
-// Mock save function
-const saveModel = async (modelData) => {
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    return { data: { data: { ...modelData, id: modelData.id || Date.now() } } };
-};
+import { FiSave, FiX } from 'react-icons/fi';
 
 const MLModelForm = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const isEditMode = !!id;
+    const queryClient = useQueryClient();
+    const isEditMode = Boolean(id);
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(false);
 
     // Fetch model data if in edit mode
-    const { data, isLoading, error: fetchError } = useQuery(
+    const { data: modelData, isLoading: fetchLoading, error: fetchError } = useQuery(
         ['mlModel', id],
-        () => fetchModel(id),
+        () => getModelById(id),
         {
             enabled: isEditMode,
             onError: (err) => {
-                setError(err.message || 'Failed to fetch model data');
-            }
+                setError(err.response?.data?.message || 'Failed to fetch model data');
+            },
         }
     );
 
-    // Save mutation
-    const saveMutation = useMutation(
-        (values) => saveModel(values),
+    // Create/Update mutation
+    const mutation = useMutation(
+        (values) => {
+            return isEditMode
+                ? updateModel(id, values)
+                : createModel(values);
+        },
         {
             onSuccess: () => {
                 setSuccess(true);
+                queryClient.invalidateQueries('mlModels');
+
+                // Redirect after a brief delay to show success message
                 setTimeout(() => {
                     navigate('/ml/models');
                 }, 1500);
             },
             onError: (err) => {
-                setError(err.message || 'Failed to save model');
-            }
+                setError(err.response?.data?.message || `Failed to ${isEditMode ? 'update' : 'create'} ML model`);
+            },
         }
     );
 
-    // Model type options
-    const modelTypeOptions = [
-        { value: 'CLASSIFICATION', label: 'Classification' },
-        { value: 'REGRESSION', label: 'Regression' },
-        { value: 'ANOMALY_DETECTION', label: 'Anomaly Detection' },
-        { value: 'CLUSTERING', label: 'Clustering' }
-    ];
-
-    // Algorithm options based on model type
-    const getAlgorithmOptions = (type) => {
-        switch (type) {
-            case 'CLASSIFICATION':
-                return [
-                    { value: 'Random Forest', label: 'Random Forest' },
-                    { value: 'XGBoost', label: 'XGBoost' },
-                    { value: 'Decision Tree', label: 'Decision Tree' },
-                    { value: 'Logistic Regression', label: 'Logistic Regression' },
-                    { value: 'Support Vector Machine', label: 'Support Vector Machine' },
-                    { value: 'Neural Network', label: 'Neural Network' }
-                ];
-            case 'REGRESSION':
-                return [
-                    { value: 'Linear Regression', label: 'Linear Regression' },
-                    { value: 'Random Forest Regressor', label: 'Random Forest Regressor' },
-                    { value: 'XGBoost Regressor', label: 'XGBoost Regressor' },
-                    { value: 'Ridge Regression', label: 'Ridge Regression' },
-                    { value: 'Lasso Regression', label: 'Lasso Regression' }
-                ];
-            case 'ANOMALY_DETECTION':
-                return [
-                    { value: 'Isolation Forest', label: 'Isolation Forest' },
-                    { value: 'One-Class SVM', label: 'One-Class SVM' },
-                    { value: 'Local Outlier Factor', label: 'Local Outlier Factor' },
-                    { value: 'Autoencoders', label: 'Autoencoders' }
-                ];
-            case 'CLUSTERING':
-                return [
-                    { value: 'K-Means', label: 'K-Means' },
-                    { value: 'DBSCAN', label: 'DBSCAN' },
-                    { value: 'Hierarchical Clustering', label: 'Hierarchical Clustering' }
-                ];
-            default:
-                return [];
-        }
-    };
-
-    // Status options
-    const statusOptions = [
-        { value: 'ACTIVE', label: 'Active' },
-        { value: 'INACTIVE', label: 'Inactive' },
-        { value: 'DRAFT', label: 'Draft' }
-    ];
-
-    // Validation schema
+    // Form validation schema
     const validationSchema = Yup.object({
-        name: Yup.string().required('Name is required'),
-        type: Yup.string().required('Type is required'),
-        algorithm: Yup.string().required('Algorithm is required'),
-        description: Yup.string().required('Description is required'),
-        status: Yup.string().required('Status is required'),
-        features: Yup.array().min(1, 'At least one feature is required')
+        name: Yup.string().required('Model name is required').max(100, 'Model name must be at most 100 characters'),
+        modelType: Yup.string().required('Model type is required'),
+        description: Yup.string().max(500, 'Description must be at most 500 characters'),
+        features: Yup.array().min(1, 'At least one feature is required'),
+        hyperparameters: Yup.object(),
+        active: Yup.boolean(),
     });
+
+    // Initialize features state (for adding/removing features)
+    const [features, setFeatures] = useState([]);
+    const [featureInput, setFeatureInput] = useState('');
 
     // Initialize form
     const formik = useFormik({
         initialValues: {
             name: '',
-            type: 'CLASSIFICATION',
-            algorithm: '',
+            modelType: '',
             description: '',
-            status: 'DRAFT',
-            features: [''],
-            hyperparameters: {}
+            features: [],
+            hyperparameters: {},
+            active: false,
         },
         validationSchema,
         onSubmit: (values) => {
-            // Filter out empty features
+            setError(null);
+            setSuccess(false);
+
+            // Format the data for the API
             const formattedValues = {
                 ...values,
-                features: values.features.filter(f => f.trim() !== '')
+                features: features,
+                hyperparameters: JSON.stringify(values.hyperparameters),
             };
 
-            if (isEditMode) {
-                formattedValues.id = parseInt(id);
-            }
-
-            saveMutation.mutate(formattedValues);
+            mutation.mutate(formattedValues);
         },
-        enableReinitialize: true
+        enableReinitialize: true,
     });
 
-    // Update form values when model data is fetched
-    React.useEffect(() => {
-        if (data?.data?.data && isEditMode) {
-            const modelData = data.data.data;
-            formik.setValues({
-                name: modelData.name || '',
-                type: modelData.type || 'CLASSIFICATION',
-                algorithm: modelData.algorithm || '',
-                description: modelData.description || '',
-                status: modelData.status || 'DRAFT',
-                features: modelData.features || [''],
-                hyperparameters: modelData.hyperparameters || {}
-            });
+    // Add a feature to the list
+    const addFeature = () => {
+        if (featureInput.trim() === '') return;
+
+        if (!features.includes(featureInput.trim())) {
+            const updatedFeatures = [...features, featureInput.trim()];
+            setFeatures(updatedFeatures);
+            formik.setFieldValue('features', updatedFeatures);
         }
-    }, [data, isEditMode]);
 
-    // Handle adding a new feature field
-    const handleAddFeature = () => {
-        formik.setFieldValue('features', [...formik.values.features, '']);
+        setFeatureInput('');
     };
 
-    // Handle removing a feature field
-    const handleRemoveFeature = (index) => {
-        const updatedFeatures = [...formik.values.features];
-        updatedFeatures.splice(index, 1);
+    // Remove a feature from the list
+    const removeFeature = (feature) => {
+        const updatedFeatures = features.filter(f => f !== feature);
+        setFeatures(updatedFeatures);
         formik.setFieldValue('features', updatedFeatures);
     };
 
-    // Handle feature field change
-    const handleFeatureChange = (index, value) => {
-        const updatedFeatures = [...formik.values.features];
-        updatedFeatures[index] = value;
-        formik.setFieldValue('features', updatedFeatures);
+    // Handle hyperparameter changes
+    const [hyperParams, setHyperParams] = useState({
+        n_estimators: '100',
+        max_depth: '10',
+        criterion: 'gini',
+    });
+
+    const updateHyperParameter = (key, value) => {
+        const updatedParams = { ...hyperParams, [key]: value };
+        setHyperParams(updatedParams);
+        formik.setFieldValue('hyperparameters', updatedParams);
     };
 
-    // Handle algorithm change based on model type
-    React.useEffect(() => {
-        formik.setFieldValue('algorithm', '');
-    }, [formik.values.type]);
+    // Update form values when model data is fetched in edit mode
+    useEffect(() => {
+        if (isEditMode && modelData?.data?.data) {
+            const model = modelData.data.data;
 
-    // Loading state
-    if (isLoading) {
+            // Parse features and hyperparameters
+            let parsedFeatures = [];
+            if (Array.isArray(model.features)) {
+                parsedFeatures = model.features;
+            } else if (typeof model.features === 'string') {
+                try {
+                    parsedFeatures = JSON.parse(model.features);
+                } catch (e) {
+                    parsedFeatures = model.features.split(',').map(f => f.trim());
+                }
+            }
+
+            let parsedHyperParams = {};
+            if (typeof model.hyperparameters === 'string') {
+                try {
+                    parsedHyperParams = JSON.parse(model.hyperparameters);
+                } catch (e) {
+                    console.error('Error parsing hyperparameters:', e);
+                    parsedHyperParams = {};
+                }
+            } else if (typeof model.hyperparameters === 'object') {
+                parsedHyperParams = model.hyperparameters;
+            }
+
+            // Set form values
+            formik.setValues({
+                name: model.name || '',
+                modelType: model.modelType || '',
+                description: model.description || '',
+                features: parsedFeatures,
+                hyperparameters: parsedHyperParams,
+                active: model.active || false,
+            });
+
+            // Update local state
+            setFeatures(parsedFeatures);
+            setHyperParams(parsedHyperParams);
+        }
+    }, [isEditMode, modelData, formik.setValues]);
+
+    // Get hyperparameter fields based on model type
+    const getHyperParameterFields = () => {
+        switch (formik.values.modelType) {
+            case 'RANDOM_FOREST':
+                return (
+                    <div className="space-y-4">
+                        <div>
+                            <label htmlFor="n_estimators" className="block text-sm font-medium text-secondary-700">
+                                Number of Estimators
+                            </label>
+                            <input
+                                type="number"
+                                id="n_estimators"
+                                className="mt-1 block w-full border border-secondary-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                value={hyperParams.n_estimators || '100'}
+                                onChange={(e) => updateHyperParameter('n_estimators', e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="max_depth" className="block text-sm font-medium text-secondary-700">
+                                Max Depth
+                            </label>
+                            <input
+                                type="number"
+                                id="max_depth"
+                                className="mt-1 block w-full border border-secondary-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                value={hyperParams.max_depth || '10'}
+                                onChange={(e) => updateHyperParameter('max_depth', e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="criterion" className="block text-sm font-medium text-secondary-700">
+                                Criterion
+                            </label>
+                            <select
+                                id="criterion"
+                                className="mt-1 block w-full border border-secondary-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                value={hyperParams.criterion || 'gini'}
+                                onChange={(e) => updateHyperParameter('criterion', e.target.value)}
+                            >
+                                <option value="gini">Gini</option>
+                                <option value="entropy">Entropy</option>
+                            </select>
+                        </div>
+                    </div>
+                );
+            case 'LOGISTIC_REGRESSION':
+                return (
+                    <div className="space-y-4">
+                        <div>
+                            <label htmlFor="C" className="block text-sm font-medium text-secondary-700">
+                                Regularization (C)
+                            </label>
+                            <input
+                                type="number"
+                                id="C"
+                                step="0.01"
+                                className="mt-1 block w-full border border-secondary-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                value={hyperParams.C || '1.0'}
+                                onChange={(e) => updateHyperParameter('C', e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="penalty" className="block text-sm font-medium text-secondary-700">
+                                Penalty
+                            </label>
+                            <select
+                                id="penalty"
+                                className="mt-1 block w-full border border-secondary-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                value={hyperParams.penalty || 'l2'}
+                                onChange={(e) => updateHyperParameter('penalty', e.target.value)}
+                            >
+                                <option value="l1">L1</option>
+                                <option value="l2">L2</option>
+                                <option value="elasticnet">Elastic Net</option>
+                            </select>
+                        </div>
+                    </div>
+                );
+            case 'NEURAL_NETWORK':
+                return (
+                    <div className="space-y-4">
+                        <div>
+                            <label htmlFor="hidden_layers" className="block text-sm font-medium text-secondary-700">
+                                Hidden Layers
+                            </label>
+                            <input
+                                type="text"
+                                id="hidden_layers"
+                                className="mt-1 block w-full border border-secondary-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                value={hyperParams.hidden_layers || '64,32'}
+                                onChange={(e) => updateHyperParameter('hidden_layers', e.target.value)}
+                                placeholder="e.g., 64,32"
+                            />
+                            <p className="mt-1 text-xs text-secondary-500">
+                                Comma-separated list of nodes in each hidden layer (e.g., 64,32)
+                            </p>
+                        </div>
+                        <div>
+                            <label htmlFor="activation" className="block text-sm font-medium text-secondary-700">
+                                Activation Function
+                            </label>
+                            <select
+                                id="activation"
+                                className="mt-1 block w-full border border-secondary-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                value={hyperParams.activation || 'relu'}
+                                onChange={(e) => updateHyperParameter('activation', e.target.value)}
+                            >
+                                <option value="relu">ReLU</option>
+                                <option value="sigmoid">Sigmoid</option>
+                                <option value="tanh">Tanh</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label htmlFor="learning_rate" className="block text-sm font-medium text-secondary-700">
+                                Learning Rate
+                            </label>
+                            <input
+                                type="number"
+                                id="learning_rate"
+                                step="0.001"
+                                className="mt-1 block w-full border border-secondary-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                value={hyperParams.learning_rate || '0.001'}
+                                onChange={(e) => updateHyperParameter('learning_rate', e.target.value)}
+                            />
+                        </div>
+                    </div>
+                );
+            case 'SVM':
+                return (
+                    <div className="space-y-4">
+                        <div>
+                            <label htmlFor="kernel" className="block text-sm font-medium text-secondary-700">
+                                Kernel
+                            </label>
+                            <select
+                                id="kernel"
+                                className="mt-1 block w-full border border-secondary-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                value={hyperParams.kernel || 'rbf'}
+                                onChange={(e) => updateHyperParameter('kernel', e.target.value)}
+                            >
+                                <option value="linear">Linear</option>
+                                <option value="rbf">RBF</option>
+                                <option value="poly">Polynomial</option>
+                                <option value="sigmoid">Sigmoid</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label htmlFor="C" className="block text-sm font-medium text-secondary-700">
+                                Regularization (C)
+                            </label>
+                            <input
+                                type="number"
+                                id="C"
+                                step="0.01"
+                                className="mt-1 block w-full border border-secondary-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                value={hyperParams.C || '1.0'}
+                                onChange={(e) => updateHyperParameter('C', e.target.value)}
+                            />
+                        </div>
+                    </div>
+                );
+            case 'ENSEMBLE':
+                return (
+                    <div className="space-y-4">
+                        <div>
+                            <label htmlFor="base_models" className="block text-sm font-medium text-secondary-700">
+                                Base Models
+                            </label>
+                            <input
+                                type="text"
+                                id="base_models"
+                                className="mt-1 block w-full border border-secondary-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                value={hyperParams.base_models || 'RANDOM_FOREST,LOGISTIC_REGRESSION'}
+                                onChange={(e) => updateHyperParameter('base_models', e.target.value)}
+                                placeholder="e.g., RANDOM_FOREST,LOGISTIC_REGRESSION"
+                            />
+                            <p className="mt-1 text-xs text-secondary-500">
+                                Comma-separated list of model types to include in the ensemble
+                            </p>
+                        </div>
+                        <div>
+                            <label htmlFor="voting" className="block text-sm font-medium text-secondary-700">
+                                Voting Method
+                            </label>
+                            <select
+                                id="voting"
+                                className="mt-1 block w-full border border-secondary-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                value={hyperParams.voting || 'soft'}
+                                onChange={(e) => updateHyperParameter('voting', e.target.value)}
+                            >
+                                <option value="hard">Hard Voting</option>
+                                <option value="soft">Soft Voting</option>
+                            </select>
+                        </div>
+                    </div>
+                );
+            default:
+                return (
+                    <div className="bg-secondary-50 p-4 rounded-md">
+                        <p className="text-secondary-700 text-sm">
+                            Select a model type to configure hyperparameters.
+                        </p>
+                    </div>
+                );
+        }
+    };
+
+    if (fetchLoading) {
         return (
             <div className="flex items-center justify-center h-64">
                 <Loading />
@@ -294,210 +389,234 @@ const MLModelForm = () => {
         );
     }
 
-    // Error state
     if (fetchError && isEditMode) {
         return (
             <Alert variant="danger" title="Error loading model">
-                {error}
-                <div className="mt-4">
-                    <Button variant="primary" onClick={() => navigate('/ml/models')}>
-                        Back to Models
-                    </Button>
-                </div>
+                {error || 'An error occurred while fetching model data. Please try again later.'}
             </Alert>
         );
     }
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div>
                 <h1 className="text-2xl font-semibold text-secondary-900">
                     {isEditMode ? 'Edit ML Model' : 'Create New ML Model'}
                 </h1>
-                <Button
-                    variant="outline"
-                    onClick={() => navigate('/ml/models')}
-                >
-                    <FiX className="mr-2 h-4 w-4" />
-                    Cancel
-                </Button>
+                <p className="mt-1 text-secondary-500">
+                    {isEditMode
+                        ? 'Update the machine learning model parameters and configuration'
+                        : 'Configure a new machine learning model for fraud detection'}
+                </p>
             </div>
 
-            {error && (
-                <Alert
-                    variant="danger"
-                    title="Error"
-                    dismissible
-                    onDismiss={() => setError(null)}
-                >
-                    {error}
-                </Alert>
-            )}
+            <Card>
+                {error && (
+                    <Alert
+                        variant="danger"
+                        title="Error"
+                        dismissible
+                        onDismiss={() => setError(null)}
+                        className="mb-4"
+                    >
+                        {error}
+                    </Alert>
+                )}
 
-            {success && (
-                <Alert
-                    variant="success"
-                    title="Success"
-                    dismissible
-                    onDismiss={() => setSuccess(false)}
-                >
-                    {isEditMode ? 'Model updated successfully!' : 'Model created successfully!'}
-                </Alert>
-            )}
+                {success && (
+                    <Alert
+                        variant="success"
+                        title="Success"
+                        dismissible
+                        onDismiss={() => setSuccess(false)}
+                        className="mb-4"
+                    >
+                        {isEditMode
+                            ? 'ML model updated successfully!'
+                            : 'ML model created successfully!'}
+                    </Alert>
+                )}
 
-            <form onSubmit={formik.handleSubmit}>
-                <div className="space-y-6">
-                    <Card title="Basic Information">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <Input
-                                label="Model Name"
+                <form onSubmit={formik.handleSubmit} className="space-y-6">
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                        <div>
+                            <label htmlFor="name" className="block text-sm font-medium text-secondary-700">
+                                Model Name*
+                            </label>
+                            <input
+                                type="text"
                                 id="name"
                                 name="name"
+                                className={`mt-1 block w-full border ${
+                                    formik.touched.name && formik.errors.name
+                                        ? 'border-danger-300 focus:ring-danger-500 focus:border-danger-500'
+                                        : 'border-secondary-300 focus:ring-primary-500 focus:border-primary-500'
+                                } rounded-md shadow-sm py-2 px-3 focus:outline-none sm:text-sm`}
+                                placeholder="Enter model name"
                                 value={formik.values.name}
                                 onChange={formik.handleChange}
                                 onBlur={formik.handleBlur}
-                                error={formik.touched.name && formik.errors.name}
-                                required
                             />
-
-                            <Select
-                                label="Model Type"
-                                id="type"
-                                name="type"
-                                value={formik.values.type}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                options={modelTypeOptions}
-                                error={formik.touched.type && formik.errors.type}
-                                required
-                            />
-
-                            <Select
-                                label="Algorithm"
-                                id="algorithm"
-                                name="algorithm"
-                                value={formik.values.algorithm}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                options={getAlgorithmOptions(formik.values.type)}
-                                error={formik.touched.algorithm && formik.errors.algorithm}
-                                required
-                                disabled={!formik.values.type}
-                            />
-
-                            <div className="md:col-span-2">
-                                <Input
-                                    label="Description"
-                                    id="description"
-                                    name="description"
-                                    value={formik.values.description}
-                                    onChange={formik.handleChange}
-                                    onBlur={formik.handleBlur}
-                                    error={formik.touched.description && formik.errors.description}
-                                    required
-                                />
-                            </div>
-
-                            <Select
-                                label="Status"
-                                id="status"
-                                name="status"
-                                value={formik.values.status}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur}
-                                options={statusOptions}
-                                error={formik.touched.status && formik.errors.status}
-                                required
-                            />
+                            {formik.touched.name && formik.errors.name ? (
+                                <p className="mt-1 text-sm text-danger-600">{formik.errors.name}</p>
+                            ) : null}
                         </div>
-                    </Card>
 
-                    <Card title="Model Features">
-                        <div className="space-y-4">
-                            <p className="text-sm text-secondary-500">
-                                Define the features (input variables) that your model will use for prediction.
-                            </p>
+                        <div>
+                            <label htmlFor="modelType" className="block text-sm font-medium text-secondary-700">
+                                Model Type*
+                            </label>
+                            <select
+                                id="modelType"
+                                name="modelType"
+                                className={`mt-1 block w-full border ${
+                                    formik.touched.modelType && formik.errors.modelType
+                                        ? 'border-danger-300 focus:ring-danger-500 focus:border-danger-500'
+                                        : 'border-secondary-300 focus:ring-primary-500 focus:border-primary-500'
+                                } rounded-md shadow-sm py-2 px-3 focus:outline-none sm:text-sm`}
+                                value={formik.values.modelType}
+                                onChange={formik.handleChange}
+                                onBlur={formik.handleBlur}
+                            >
+                                <option value="">Select model type</option>
+                                <option value="RANDOM_FOREST">Random Forest</option>
+                                <option value="LOGISTIC_REGRESSION">Logistic Regression</option>
+                                <option value="NEURAL_NETWORK">Neural Network</option>
+                                <option value="SVM">Support Vector Machine</option>
+                                <option value="ENSEMBLE">Ensemble Model</option>
+                            </select>
+                            {formik.touched.modelType && formik.errors.modelType ? (
+                                <p className="mt-1 text-sm text-danger-600">{formik.errors.modelType}</p>
+                            ) : null}
+                        </div>
+                    </div>
 
-                            {formik.values.features.map((feature, index) => (
-                                <div key={index} className="flex items-center space-x-2">
-                                    <div className="flex-grow">
-                                        <Input
-                                            placeholder={`Feature ${index + 1}`}
-                                            value={feature}
-                                            onChange={(e) => handleFeatureChange(index, e.target.value)}
-                                            error={
-                                                formik.touched.features &&
-                                                formik.errors.features &&
-                                                typeof formik.errors.features !== 'string' &&
-                                                formik.errors.features[index]
-                                            }
-                                        />
-                                    </div>
-                                    {formik.values.features.length > 1 && (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            onClick={() => handleRemoveFeature(index)}
-                                            className="shrink-0"
-                                        >
-                                            <FiTrash className="h-4 w-4 text-danger-500" />
-                                        </Button>
-                                    )}
-                                </div>
-                            ))}
+                    <div>
+                        <label htmlFor="description" className="block text-sm font-medium text-secondary-700">
+                            Description
+                        </label>
+                        <textarea
+                            id="description"
+                            name="description"
+                            rows={3}
+                            className="mt-1 block w-full border border-secondary-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                            placeholder="Enter model description"
+                            value={formik.values.description}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                        />
+                        {formik.touched.description && formik.errors.description ? (
+                            <p className="mt-1 text-sm text-danger-600">{formik.errors.description}</p>
+                        ) : null}
+                    </div>
 
+                    <div>
+                        <label className="block text-sm font-medium text-secondary-700 mb-2">
+                            Features*
+                        </label>
+                        <div className="flex space-x-2 mb-2">
+                            <input
+                                type="text"
+                                className="flex-1 border border-secondary-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                placeholder="Enter feature name"
+                                value={featureInput}
+                                onChange={(e) => setFeatureInput(e.target.value)}
+                                onKeyPress={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        addFeature();
+                                    }
+                                }}
+                            />
                             <Button
                                 type="button"
-                                variant="outline"
-                                onClick={handleAddFeature}
-                                className="mt-2"
+                                variant="secondary"
+                                onClick={addFeature}
                             >
-                                <FiPlus className="mr-2 h-4 w-4" />
-                                Add Feature
+                                Add
                             </Button>
-
-                            {formik.touched.features && typeof formik.errors.features === 'string' && (
-                                <p className="mt-1 text-xs text-danger-600">{formik.errors.features}</p>
-                            )}
                         </div>
-                    </Card>
 
-                    <Card title="Advanced Configuration">
-                        <div className="space-y-4">
-                            <p className="text-sm text-secondary-500">
-                                Advanced model configuration and hyperparameters. This section will be populated based on the selected model type and algorithm.
+                        {formik.touched.features && formik.errors.features ? (
+                            <p className="mt-1 text-sm text-danger-600">{formik.errors.features}</p>
+                        ) : null}
+
+                        <div className="mt-2 flex flex-wrap gap-2">
+                            {features.map((feature, index) => (
+                                <div
+                                    key={index}
+                                    className="bg-primary-100 text-primary-800 px-3 py-1 rounded-full text-sm flex items-center"
+                                >
+                                    <span>{feature}</span>
+                                    <button
+                                        type="button"
+                                        className="ml-2 focus:outline-none"
+                                        onClick={() => removeFeature(feature)}
+                                    >
+                                        <FiX className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+
+                        {features.length === 0 && (
+                            <p className="text-sm text-secondary-500 mt-2">
+                                No features added yet. Add features the model will use for prediction.
                             </p>
+                        )}
+                    </div>
 
+                    {/* Hyperparameters Section */}
+                    <div>
+                        <h3 className="text-sm font-medium text-secondary-700 mb-2">Hyperparameters</h3>
+                        {formik.values.modelType ? (
+                            getHyperParameterFields()
+                        ) : (
                             <div className="bg-secondary-50 p-4 rounded-md">
-                                <p className="text-sm text-secondary-500 italic">
-                                    This section would typically include algorithm-specific hyperparameters such as learning rate, number of estimators,
-                                    regularization parameters, etc. For this demo, it's left as a placeholder.
+                                <p className="text-secondary-700 text-sm">
+                                    Select a model type to configure hyperparameters.
                                 </p>
                             </div>
-                        </div>
-                    </Card>
-
-                    <div className="flex justify-end space-x-3">
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            onClick={() => navigate('/ml/models')}
-                            disabled={saveMutation.isLoading}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            type="submit"
-                            variant="primary"
-                            isLoading={saveMutation.isLoading}
-                            disabled={saveMutation.isLoading || !formik.isValid}
-                        >
-                            <FiSave className="mr-2 h-4 w-4" />
-                            {isEditMode ? 'Update Model' : 'Save Model'}
-                        </Button>
+                        )}
                     </div>
-                </div>
-            </form>
+
+                    <div className="flex items-center">
+                        <input
+                            id="active"
+                            name="active"
+                            type="checkbox"
+                            checked={formik.values.active}
+                            onChange={formik.handleChange}
+                            className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-secondary-300 rounded"
+                        />
+                        <label htmlFor="active" className="ml-2 block text-sm text-secondary-700">
+                            Activate model immediately after {isEditMode ? 'update' : 'creation'}
+                        </label>
+                    </div>
+
+                    <div className="border-t border-secondary-200 pt-4">
+                        <div className="flex justify-end space-x-3">
+                            <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={() => navigate('/ml/models')}
+                            >
+                                <FiX className="h-4 w-4 mr-2" />
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                variant="primary"
+                                isLoading={mutation.isLoading}
+                                disabled={mutation.isLoading || !formik.isValid}
+                            >
+                                <FiSave className="h-4 w-4 mr-2" />
+                                {isEditMode ? 'Update Model' : 'Create Model'}
+                            </Button>
+                        </div>
+                    </div>
+                </form>
+            </Card>
         </div>
     );
 };

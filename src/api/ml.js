@@ -2,6 +2,7 @@
 import api from './index';
 import config from '../config';
 import mockService from './mockService';
+import { formatQueryParams } from '../utils/apiUtils';
 
 // Use mock service for demo mode
 const service = config.api.demoMode ? mockService.ml : api;
@@ -12,9 +13,11 @@ const service = config.api.demoMode ? mockService.ml : api;
  * @returns {Promise<Object>} - API response
  */
 export const getModels = (params) => {
+    const filteredParams = params ? formatQueryParams(params) : {};
+    
     return service && service.getModels ?
-        service.getModels(params) :
-        api.get('/ml/models', { params });
+        service.getModels(filteredParams) :
+        api.get('/ml/models', { params: filteredParams });
 };
 
 /**
@@ -34,9 +37,11 @@ export const getModelById = (id) => {
  * @returns {Promise<Object>} - API response
  */
 export const createModel = (modelData) => {
+    const filteredData = formatQueryParams(modelData);
+    
     return service && service.createModel ?
-        service.createModel(modelData) :
-        api.post('/ml/models', modelData);
+        service.createModel(filteredData) :
+        api.post('/ml/models', filteredData);
 };
 
 /**
@@ -46,9 +51,11 @@ export const createModel = (modelData) => {
  * @returns {Promise<Object>} - API response
  */
 export const updateModel = (id, modelData) => {
+    const filteredData = formatQueryParams(modelData);
+    
     return service && service.updateModel ?
-        service.updateModel(id, modelData) :
-        api.put(`/ml/models/${id}`, modelData);
+        service.updateModel(id, filteredData) :
+        api.put(`/ml/models/${id}`, filteredData);
 };
 
 /**

@@ -14,7 +14,7 @@ const Footer = () => {
                     </div>
                     <div>
                         <p className="text-sm text-secondary-500 dark:text-secondary-400">
-                            Fraud Detection System for Zimbabwe Stock Exchange
+                            Financial Fraud Detection and Risk Assessment Tool.
                         </p>
                     </div>
                 </div>

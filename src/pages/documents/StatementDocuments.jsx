@@ -1,96 +1,162 @@
 // src/pages/documents/StatementDocuments.jsx
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useParams, Link } from 'react-router-dom';
-import { getDocumentsByStatement } from '../../api/documents';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getDocumentsByStatement, downloadDocument, deleteDocument } from '../../api/documents';
 import { getStatementById } from '../../api/financial';
-import Card from '../../components/common/Card';
+import DocumentUploader from '../../components/documents/DocumentUploader';
 import Button from '../../components/common/Button';
+import Card from '../../components/common/Card';
 import Alert from '../../components/common/Alert';
 import Loading from '../../components/common/Loading';
-import DocumentUploader from '../../components/documents/DocumentUploader';
-import { FiFileText, FiDownload, FiPlus, FiArrowLeft, FiFolder } from 'react-icons/fi';
+import Modal, { ConfirmModal } from '../../components/common/Modal';
+import { FiDownload, FiTrash2, FiPlus, FiFile, FiArrowLeft } from 'react-icons/fi';
 
 const StatementDocuments = () => {
     const { statementId } = useParams();
-    const [showUploader, setShowUploader] = useState(false);
+    const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
-    // Fetch statement
+    // State for modals
+    const [showUploader, setShowUploader] = useState(false);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [documentToDelete, setDocumentToDelete] = useState(null);
+
+    // Fetch statement details
     const {
         data: statementData,
         isLoading: statementLoading,
         error: statementError
     } = useQuery(
         ['statement', statementId],
-        () => getStatementById(statementId)
+        () => getStatementById(statementId),
+        {
+            enabled: !!statementId,
+            onError: (error) => {
+                console.error('Error fetching statement:', error);
+            }
+        }
     );
 
-    // Fetch documents for statement
+    // Fetch statement documents
     const {
         data: documentsData,
         isLoading: documentsLoading,
         error: documentsError,
         refetch: refetchDocuments
     } = useQuery(
-        ['documents', { statementId }],
-        () => getDocumentsByStatement(statementId)
+        ['statementDocuments', statementId],
+        () => getDocumentsByStatement(statementId),
+        {
+            enabled: !!statementId,
+            onError: (error) => {
+                console.error('Error fetching documents:', error);
+            }
+        }
     );
 
-    // Extract data
-    const statement = statementData?.data?.data;
-    const documents = documentsData?.data?.data || [];
-
-    // Format date
-    const formatDate = (dateString) => {
-        if (!dateString) return 'N/A';
-        return new Date(dateString).toLocaleDateString();
-    };
-
-    // Format file size
-    const formatFileSize = (bytes) => {
-        if (!bytes) return 'N/A';
-
-        const units = ['B', 'KB', 'MB', 'GB'];
-        let size = bytes;
-        let unitIndex = 0;
-
-        while (size >= 1024 && unitIndex < units.length - 1) {
-            size /= 1024;
-            unitIndex++;
+    // Delete document mutation
+    const deleteMutation = useMutation(
+        (id) => deleteDocument(id),
+        {
+            onSuccess: () => {
+                // Invalidate and refetch
+                queryClient.invalidateQueries(['statementDocuments', statementId]);
+                setDeleteModalOpen(false);
+                setDocumentToDelete(null);
+            },
+            onError: (error) => {
+                console.error('Error deleting document:', error);
+            }
         }
+    );
 
-        return `${size.toFixed(1)} ${units[unitIndex]}`;
+    // Handle download
+    const handleDownload = async (documentId) => {
+        try {
+            const response = await downloadDocument(documentId);
+
+            // Create a download link
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+
+            // Get filename from header or use a default
+            let filename = 'document';
+            const contentDisposition = response.headers['content-disposition'];
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1].replace(/['"]/g, '');
+                }
+            }
+
+            link.href = url;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+
+            // Cleanup
+            link.parentNode.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Error downloading document:', error);
+        }
     };
 
-    // Get document icon based on type
-    const getDocumentIcon = (type) => {
-        if (!type) return <FiFileText className="text-secondary-400" />;
+    // Handle delete
+    const handleDelete = (document) => {
+        setDocumentToDelete(document);
+        setDeleteModalOpen(true);
+    };
 
-        switch(type.toLowerCase()) {
-            case 'pdf':
-                return <FiFileText className="text-danger-500" />;
-            case 'excel':
-            case 'xlsx':
-            case 'xls':
-                return <FiFileText className="text-success-500" />;
-            case 'word':
-            case 'doc':
-            case 'docx':
-                return <FiFileText className="text-primary-500" />;
-            default:
-                return <FiFileText className="text-secondary-400" />;
+    // Confirm delete
+    const confirmDelete = () => {
+        if (documentToDelete) {
+            deleteMutation.mutate(documentToDelete.id);
         }
     };
 
     // Handle upload success
     const handleUploadSuccess = () => {
+        // Hide uploader and refresh list
         setShowUploader(false);
         refetchDocuments();
     };
 
+    // Format date
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    // Format file size
+    const formatFileSize = (bytes) => {
+        if (!bytes && bytes !== 0) return 'N/A';
+
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        if (bytes === 0) return '0 Bytes';
+
+        const i = Math.floor(Math.log(bytes) / Math.log(1024));
+        if (i === 0) return `${bytes} ${sizes[i]}`;
+
+        return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
+    };
+
+    // Get file icon based on file type
+    const getFileIcon = (fileType) => {
+        // For now just return the default file icon
+        return <FiFile className="h-5 w-5" />;
+    };
+
     // Loading state
-    const isLoading = statementLoading || documentsLoading;
-    if (isLoading) {
+    if (statementLoading || documentsLoading) {
         return (
             <div className="flex items-center justify-center h-64">
                 <Loading />
@@ -99,46 +165,32 @@ const StatementDocuments = () => {
     }
 
     // Error state
-    const error = statementError || documentsError;
-    if (error) {
+    if (statementError || documentsError) {
         return (
             <Alert variant="danger" title="Error loading data">
-                An error occurred while fetching data. Please try again later.
-                <div className="mt-4">
-                    <Button variant="outline" to="/statements">
-                        <FiArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Statements
-                    </Button>
-                </div>
+                {statementError?.message || documentsError?.message || 'An error occurred while loading data. Please try again.'}
             </Alert>
         );
     }
 
-    // Not found state
-    if (!statement) {
-        return (
-            <Alert variant="warning" title="Statement not found">
-                The requested financial statement could not be found.
-                <div className="mt-4">
-                    <Button variant="outline" to="/statements">
-                        <FiArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Statements
-                    </Button>
-                </div>
-            </Alert>
-        );
-    }
+    // Extract data
+    const statement = statementData?.data?.data;
+    const documents = documentsData?.data?.data || [];
 
     return (
         <div className="space-y-6">
+            {/* Header with back button */}
             <div className="flex items-center">
-                <Link to={`/statements/${statementId}`} className="mr-4 text-secondary-500 hover:text-secondary-700">
+                <button
+                    className="mr-4 text-secondary-500 hover:text-secondary-700"
+                    onClick={() => navigate(-1)}
+                >
                     <FiArrowLeft className="h-5 w-5" />
-                </Link>
+                </button>
                 <div>
-                    <h1 className="text-2xl font-semibold text-secondary-900">Financial Statement Documents</h1>
+                    <h1 className="text-2xl font-semibold text-secondary-900">Statement Documents</h1>
                     <p className="mt-1 text-secondary-500">
-                        {statement.companyName} • {statement.year} {statement.statementType} {statement.period && `• ${statement.period}`}
+                        {statement?.companyName} - {statement?.year} {statement?.statementType}
                     </p>
                 </div>
             </div>
@@ -157,78 +209,91 @@ const StatementDocuments = () => {
             {/* Document uploader */}
             {showUploader && (
                 <DocumentUploader
+                    statementId={statementId}
                     onUploadSuccess={handleUploadSuccess}
                     onCancel={() => setShowUploader(false)}
-                    companyId={statement.companyId}
-                    statementId={statementId}
                 />
             )}
 
             {/* Documents list */}
-            <Card title="Statement Documents">
+            <Card title="Documents">
                 {documents.length > 0 ? (
-                    <div className="overflow-hidden">
-                        <ul className="divide-y divide-secondary-200">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-secondary-200">
+                            <thead className="bg-secondary-50">
+                            <tr>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                                    Document
+                                </th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                                    Size
+                                </th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                                    Type
+                                </th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                                    Upload Date
+                                </th>
+                                <th scope="col" className="relative px-6 py-3">
+                                    <span className="sr-only">Actions</span>
+                                </th>
+                            </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-secondary-200">
                             {documents.map((document) => (
-                                <li key={document.id}>
-                                    <Link
-                                        to={`/documents/${document.id}`}
-                                        className="block hover:bg-secondary-50"
-                                    >
-                                        <div className="px-4 py-4 flex items-center sm:px-6">
-                                            <div className="flex-shrink-0">
-                                                <div className="h-10 w-10 flex items-center justify-center">
-                                                    {getDocumentIcon(document.documentType)}
-                                                </div>
+                                <tr key={document.id} className="hover:bg-secondary-50">
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="flex items-center">
+                                            <div className="flex-shrink-0 text-secondary-400">
+                                                {getFileIcon(document.fileType)}
                                             </div>
-                                            <div className="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between">
-                                                <div>
-                                                    <div className="text-sm font-medium text-primary-600 truncate">
-                                                        {document.name}
-                                                    </div>
-                                                    <div className="mt-1 flex">
-                                                        <div className="flex items-center text-sm text-secondary-500">
-                                                            <span>
-                                                                Uploaded on {formatDate(document.uploadDate)}
-                                                            </span>
-                                                            <span className="mx-1">•</span>
-                                                            <span>{formatFileSize(document.fileSize)}</span>
-                                                            {document.documentType && (
-                                                                <>
-                                                                    <span className="mx-1">•</span>
-                                                                    <span>{document.documentType}</span>
-                                                                </>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="mt-4 flex-shrink-0 sm:mt-0">
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={(e) => {
-                                                            e.preventDefault();
-                                                            e.stopPropagation();
-                                                            // In a real app, this would download the file
-                                                            console.log(`Downloading document: ${document.id}`);
-                                                        }}
-                                                    >
-                                                        <FiDownload className="h-4 w-4" />
-                                                    </Button>
+                                            <div className="ml-3">
+                                                <div className="font-medium text-secondary-900">
+                                                    {document.fileName}
                                                 </div>
                                             </div>
                                         </div>
-                                    </Link>
-                                </li>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-secondary-500">
+                                        {formatFileSize(document.fileSize)}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-secondary-500">
+                                        {document.fileType}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-secondary-500">
+                                        {formatDate(document.uploadDate)}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <div className="flex items-center justify-end space-x-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleDownload(document.id)}
+                                                title="Download document"
+                                            >
+                                                <FiDownload className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleDelete(document)}
+                                                title="Delete document"
+                                            >
+                                                <FiTrash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </td>
+                                </tr>
                             ))}
-                        </ul>
+                            </tbody>
+                        </table>
                     </div>
                 ) : (
-                    <div className="py-12 flex flex-col items-center justify-center">
-                        <FiFolder className="h-16 w-16 text-secondary-300" />
-                        <h3 className="mt-3 text-lg font-medium text-secondary-900">No documents found</h3>
-                        <p className="mt-1 text-sm text-secondary-500 text-center max-w-md">
-                            No documents have been uploaded for this financial statement yet.
+                    <div className="text-center py-8">
+                        <FiFile className="mx-auto h-12 w-12 text-secondary-400" />
+                        <h3 className="mt-2 text-sm font-medium text-secondary-900">No documents found</h3>
+                        <p className="mt-1 text-sm text-secondary-500">
+                            Get started by uploading a document for this financial statement.
                         </p>
                         <div className="mt-6">
                             <Button
@@ -242,6 +307,22 @@ const StatementDocuments = () => {
                     </div>
                 )}
             </Card>
+
+            {/* Delete confirmation modal */}
+            <ConfirmModal
+                isOpen={deleteModalOpen}
+                onClose={() => setDeleteModalOpen(false)}
+                onConfirm={confirmDelete}
+                title="Delete Document"
+                confirmText="Delete"
+                confirmVariant="danger"
+                isConfirmLoading={deleteMutation.isLoading}
+            >
+                <p>
+                    Are you sure you want to delete the document "{documentToDelete?.fileName}"?
+                    This action cannot be undone.
+                </p>
+            </ConfirmModal>
         </div>
     );
 };

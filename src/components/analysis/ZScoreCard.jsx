@@ -59,7 +59,12 @@ const ZScoreCard = ({ data }) => {
                 <div className="flex items-center justify-between">
                     <div>
                         <p className="text-sm text-secondary-500">Z-Score</p>
-                        <p className="text-2xl font-bold">{data.zScore?.toFixed(2) || 'N/A'}</p>
+                        <p className="text-2xl font-bold">
+                            {data.zscore !== undefined && data.zscore !== null
+                                ? data.zscore.toFixed(2)
+                                : 'N/A'}
+                        </p>
+
                     </div>
                     <div className={`px-3 py-1 rounded-full bg-${categoryColor}-100 text-${categoryColor}-800`}>
                         {data.riskCategory || 'Unknown'}

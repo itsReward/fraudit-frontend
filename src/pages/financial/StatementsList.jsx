@@ -232,6 +232,7 @@ const StatementsList = () => {
                                 <div className="flex-1 flex justify-between sm:hidden">
                                     <Button
                                         variant="secondary"
+                                        size="sm"
                                         onClick={() => handlePageChange(page - 1)}
                                         disabled={page === 0}
                                     >
@@ -239,6 +240,7 @@ const StatementsList = () => {
                                     </Button>
                                     <Button
                                         variant="secondary"
+                                        size="sm"
                                         onClick={() => handlePageChange(page + 1)}
                                         disabled={page >= totalPages - 1}
                                     >
@@ -247,11 +249,11 @@ const StatementsList = () => {
                                 </div>
                                 <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                                     <div>
-                                        <p className="text-sm text-secondary-700">
+                                        <p className="text-xs text-secondary-700">
                                             Showing <span className="font-medium">{page * size + 1}</span> to{' '}
                                             <span className="font-medium">
-                                                {Math.min((page + 1) * size, totalElements)}
-                                            </span>{' '}
+                        {Math.min((page + 1) * size, totalElements)}
+                    </span>{' '}
                                             of <span className="font-medium">{totalElements}</span> results
                                         </p>
                                     </div>
@@ -260,43 +262,129 @@ const StatementsList = () => {
                                             <button
                                                 onClick={() => handlePageChange(page - 1)}
                                                 disabled={page === 0}
-                                                className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-secondary-300 bg-white text-sm font-medium ${
+                                                className={`relative inline-flex items-center px-1 py-1 rounded-l-md border border-secondary-300 bg-white text-xs font-medium ${
                                                     page === 0
                                                         ? 'text-secondary-300 cursor-not-allowed'
                                                         : 'text-secondary-500 hover:bg-secondary-50 cursor-pointer'
                                                 }`}
                                             >
                                                 <span className="sr-only">Previous</span>
-                                                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                                     <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
                                                 </svg>
                                             </button>
 
-                                            {[...Array(totalPages).keys()].map((pageNum) => (
-                                                <button
-                                                    key={pageNum}
-                                                    onClick={() => handlePageChange(pageNum)}
-                                                    className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                                                        pageNum === page
-                                                            ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
-                                                            : 'bg-white border-secondary-300 text-secondary-500 hover:bg-secondary-50'
-                                                    }`}
-                                                >
-                                                    {pageNum + 1}
-                                                </button>
-                                            ))}
+                                            {/* Show limited page numbers */}
+                                            {(() => {
+                                                // Maximum number of page buttons to show
+                                                const maxVisiblePages = 3;
+
+                                                // If we have fewer pages than our limit, show them all
+                                                if (totalPages <= maxVisiblePages) {
+                                                    return [...Array(totalPages).keys()].map((pageNumber) => (
+                                                        <button
+                                                            key={pageNumber}
+                                                            onClick={() => handlePageChange(pageNumber)}
+                                                            className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
+                                                                pageNumber === page
+                                                                    ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
+                                                                    : 'bg-white border-secondary-300 text-secondary-500 hover:bg-secondary-50'
+                                                            }`}
+                                                        >
+                                                            {pageNumber + 1}
+                                                        </button>
+                                                    ));
+                                                }
+
+                                                // For many pages, show a smart subset
+                                                const pageButtons = [];
+
+                                                // Always include first page
+                                                pageButtons.push(
+                                                    <button
+                                                        key="first"
+                                                        onClick={() => handlePageChange(0)}
+                                                        className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
+                                                            page === 0
+                                                                ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
+                                                                : 'bg-white border-secondary-300 text-secondary-500 hover:bg-secondary-50'
+                                                        }`}
+                                                    >
+                                                        1
+                                                    </button>
+                                                );
+
+                                                // Add current page and neighbors
+                                                let startPage = Math.max(1, page - 1);
+                                                let endPage = Math.min(totalPages - 2, page + 1);
+
+                                                // Add ellipsis if needed
+                                                if (startPage > 1) {
+                                                    pageButtons.push(
+                                                        <span key="ellipsis1" className="relative inline-flex items-center px-1 py-1 border border-secondary-300 bg-white text-xs font-medium text-secondary-500">
+                                    …
+                                </span>
+                                                    );
+                                                }
+
+                                                // Add middle pages
+                                                for (let i = startPage; i <= endPage; i++) {
+                                                    // Skip first and last page as they're always shown separately
+                                                    if (i === 0 || i === totalPages - 1) continue;
+
+                                                    pageButtons.push(
+                                                        <button
+                                                            key={i}
+                                                            onClick={() => handlePageChange(i)}
+                                                            className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
+                                                                i === page
+                                                                    ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
+                                                                    : 'bg-white border-secondary-300 text-secondary-500 hover:bg-secondary-50'
+                                                            }`}
+                                                        >
+                                                            {i + 1}
+                                                        </button>
+                                                    );
+                                                }
+
+                                                // Add ellipsis if needed
+                                                if (endPage < totalPages - 2) {
+                                                    pageButtons.push(
+                                                        <span key="ellipsis2" className="relative inline-flex items-center px-1 py-1 border border-secondary-300 bg-white text-xs font-medium text-secondary-500">
+                                    …
+                                </span>
+                                                    );
+                                                }
+
+                                                // Always include last page
+                                                pageButtons.push(
+                                                    <button
+                                                        key="last"
+                                                        onClick={() => handlePageChange(totalPages - 1)}
+                                                        className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
+                                                            page === totalPages - 1
+                                                                ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
+                                                                : 'bg-white border-secondary-300 text-secondary-500 hover:bg-secondary-50'
+                                                        }`}
+                                                    >
+                                                        {totalPages}
+                                                    </button>
+                                                );
+
+                                                return pageButtons;
+                                            })()}
 
                                             <button
                                                 onClick={() => handlePageChange(page + 1)}
                                                 disabled={page >= totalPages - 1}
-                                                className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-secondary-300 bg-white text-sm font-medium ${
+                                                className={`relative inline-flex items-center px-1 py-1 rounded-r-md border border-secondary-300 bg-white text-xs font-medium ${
                                                     page >= totalPages - 1
                                                         ? 'text-secondary-300 cursor-not-allowed'
                                                         : 'text-secondary-500 hover:bg-secondary-50 cursor-pointer'
                                                 }`}
                                             >
                                                 <span className="sr-only">Next</span>
-                                                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                                     <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
                                                 </svg>
                                             </button>

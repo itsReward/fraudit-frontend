@@ -21,6 +21,7 @@ import RiskScoreCard from '../../components/analysis/RiskScoreCard';
 import FinancialDataForm from '../../components/financial/FinancialDataForm';
 import DocumentUploader from '../../components/financial/DocumentUploader';
 import { FiFileText, FiBarChart2, FiEdit, FiDownload, FiCheckCircle } from 'react-icons/fi';
+import MLPredictions from '../../components/ml/MLPredictions';
 
 const StatementDetail = () => {
     const { id } = useParams();
@@ -255,6 +256,18 @@ const StatementDetail = () => {
                     >
                         Documents
                     </button>
+
+                    <button
+                        onClick={() => setActiveTab('ml')}
+                        className={`${
+                            activeTab === 'ml'
+                                ? 'border-primary-500 text-primary-600'
+                                : 'border-transparent text-secondary-500 hover:text-secondary-700 hover:border-secondary-300'
+                        } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                    >
+                        ML Analysis
+                    </button>
+
                 </nav>
             </div>
 
@@ -475,6 +488,69 @@ const StatementDetail = () => {
                             </div>
                         </Card>
                     </div>
+                )}
+
+                {activeTab === 'ml' && (
+                    <>
+                        {hasFinancialData ? (
+                            <div className="space-y-6">
+                                {/* ML Predictions Component */}
+                                <MLPredictions statementId={id} />
+
+                                {/* ML Models Comparison */}
+                                <Card title="ML Models Comparison">
+                                    <div className="py-6 text-center">
+                                        <FiBarChart2 className="mx-auto h-12 w-12 text-secondary-400" />
+                                        <h3 className="mt-2 text-sm font-medium text-secondary-900">Model Comparison</h3>
+                                        <p className="mt-1 text-sm text-secondary-500">
+                                            Compare results from different ML models for this financial statement.
+                                        </p>
+                                        <div className="mt-4">
+                                            <Link to={`/ml/models/performance`}>
+                                                <Button variant="outline">
+                                                    View Models Performance
+                                                </Button>
+                                            </Link>
+                                        </div>
+                                    </div>
+                                </Card>
+
+                                {/* Some additional information */}
+                                <div className="bg-secondary-50 p-4 rounded-lg border border-secondary-200">
+                                    <h3 className="text-sm font-medium text-secondary-900 mb-2">
+                                        About Machine Learning Analysis
+                                    </h3>
+                                    <p className="text-sm text-secondary-700">
+                                        Our system uses machine learning models to analyze financial statements for potential
+                                        fraud indicators. These models are trained on historical data of companies with known
+                                        fraud cases and legitimate financial reporting.
+                                    </p>
+                                    <p className="text-sm text-secondary-700 mt-2">
+                                        The ML predictions should be used as one of several tools in your fraud detection
+                                        process. Always combine ML results with traditional financial analysis and expert judgment.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : (
+                            <Card>
+                                <div className="py-8 text-center">
+                                    <FiBarChart2 className="mx-auto h-12 w-12 text-secondary-400" />
+                                    <h3 className="mt-2 text-sm font-medium text-secondary-900">ML analysis not available</h3>
+                                    <p className="mt-1 text-sm text-secondary-500">
+                                        Add financial data to enable machine learning analysis.
+                                    </p>
+                                    <div className="mt-6">
+                                        <Button
+                                            variant="primary"
+                                            onClick={() => setShowAddData(true)}
+                                        >
+                                            Add Financial Data
+                                        </Button>
+                                    </div>
+                                </div>
+                            </Card>
+                        )}
+                    </>
                 )}
             </div>
         </div>

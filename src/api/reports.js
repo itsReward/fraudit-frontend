@@ -2,6 +2,7 @@
 import api from './index';
 import config from '../config';
 import mockService from './mockService';
+import {formatQueryParams} from "../utils/apiUtils";
 
 /**
  * Get available report types
@@ -34,10 +35,16 @@ export const generateReport = (reportType, parameters) => {
  * @returns {Promise<Object>} - API response
  */
 export const getReports = (params) => {
+    // Filter out empty string parameters
+    const cleanParams = formatQueryParams(params);
+
+    console.log("Sending reports params:", cleanParams);
+
     return config.api.demoMode ?
-        mockService.getReports ? mockService.getReports(params) : mockService.reports.getReports(params) :
-        api.get('/reports', { params });
+        mockService.getReports ? mockService.getReports(cleanParams) : mockService.reports.getReports(cleanParams) :
+        api.get('/reports/available', { params: cleanParams });
 };
+
 
 /**
  * Download a report

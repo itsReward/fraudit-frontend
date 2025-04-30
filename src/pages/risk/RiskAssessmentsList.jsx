@@ -442,11 +442,11 @@ const RiskAssessmentsList = () => {
                 <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-secondary-200 sm:px-6">
                     <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                         <div>
-                            <p className="text-sm text-secondary-700">
+                            <p className="text-xs text-secondary-700">
                                 Showing <span className="font-medium">{page * pageSize + 1}</span> to{' '}
                                 <span className="font-medium">
-                                    {Math.min((page + 1) * pageSize, totalElements)}
-                                </span>{' '}
+                        {Math.min((page + 1) * pageSize, totalElements)}
+                    </span>{' '}
                                 of <span className="font-medium">{totalElements}</span> results
                             </p>
                         </div>
@@ -455,7 +455,7 @@ const RiskAssessmentsList = () => {
                                 <button
                                     onClick={() => setPage(p => Math.max(0, p - 1))}
                                     disabled={page === 0}
-                                    className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-secondary-300 bg-white text-sm font-medium ${
+                                    className={`relative inline-flex items-center px-1 py-1 rounded-l-md border border-secondary-300 bg-white text-xs font-medium ${
                                         page === 0
                                             ? 'text-secondary-300 cursor-not-allowed'
                                             : 'text-secondary-500 hover:bg-secondary-50'
@@ -463,7 +463,7 @@ const RiskAssessmentsList = () => {
                                 >
                                     <span className="sr-only">Previous</span>
                                     <svg
-                                        className="h-5 w-5"
+                                        className="h-4 w-4"
                                         xmlns="http://www.w3.org/2000/svg"
                                         viewBox="0 0 20 20"
                                         fill="currentColor"
@@ -477,25 +477,111 @@ const RiskAssessmentsList = () => {
                                     </svg>
                                 </button>
 
-                                {/* Page numbers */}
-                                {[...Array(totalPages).keys()].map((pageNumber) => (
-                                    <button
-                                        key={pageNumber}
-                                        onClick={() => setPage(pageNumber)}
-                                        className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                                            pageNumber === page
-                                                ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
-                                                : 'bg-white border-secondary-300 text-secondary-500 hover:bg-secondary-50'
-                                        }`}
-                                    >
-                                        {pageNumber + 1}
-                                    </button>
-                                ))}
+                                {/* Smart pagination with limited buttons */}
+                                {(() => {
+                                    // Maximum visible pages
+                                    const maxVisiblePages = 5;
+
+                                    // If we have fewer pages than max, show them all
+                                    if (totalPages <= maxVisiblePages) {
+                                        return [...Array(totalPages).keys()].map((pageNumber) => (
+                                            <button
+                                                key={pageNumber}
+                                                onClick={() => setPage(pageNumber)}
+                                                className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
+                                                    pageNumber === page
+                                                        ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
+                                                        : 'bg-white border-secondary-300 text-secondary-500 hover:bg-secondary-50'
+                                                }`}
+                                            >
+                                                {pageNumber + 1}
+                                            </button>
+                                        ));
+                                    }
+
+                                    // For many pages, show a smart subset
+                                    const pageButtons = [];
+
+                                    // Always show first page
+                                    pageButtons.push(
+                                        <button
+                                            key="first"
+                                            onClick={() => setPage(0)}
+                                            className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
+                                                page === 0
+                                                    ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
+                                                    : 'bg-white border-secondary-300 text-secondary-500 hover:bg-secondary-50'
+                                            }`}
+                                        >
+                                            1
+                                        </button>
+                                    );
+
+                                    // Calculate range around current page
+                                    let startPage = Math.max(1, page - 1);
+                                    let endPage = Math.min(totalPages - 2, page + 1);
+
+                                    // Add ellipsis after first page if needed
+                                    if (startPage > 1) {
+                                        pageButtons.push(
+                                            <span key="ellipsis1" className="relative inline-flex items-center px-1 py-1 border border-secondary-300 bg-white text-xs font-medium text-secondary-500">
+                                    …
+                                </span>
+                                        );
+                                    }
+
+                                    // Add pages in the middle range
+                                    for (let i = startPage; i <= endPage; i++) {
+                                        if (i === 0 || i === totalPages - 1) continue; // Skip first and last pages
+
+                                        pageButtons.push(
+                                            <button
+                                                key={i}
+                                                onClick={() => setPage(i)}
+                                                className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
+                                                    i === page
+                                                        ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
+                                                        : 'bg-white border-secondary-300 text-secondary-500 hover:bg-secondary-50'
+                                                }`}
+                                            >
+                                                {i + 1}
+                                            </button>
+                                        );
+                                    }
+
+                                    // Add ellipsis before last page if needed
+                                    if (endPage < totalPages - 2) {
+                                        pageButtons.push(
+                                            <span key="ellipsis2" className="relative inline-flex items-center px-1 py-1 border border-secondary-300 bg-white text-xs font-medium text-secondary-500">
+                                    …
+                                </span>
+                                        );
+                                    }
+
+                                    // Always show last page
+                                    if (totalPages > 1) {
+                                        pageButtons.push(
+                                            <button
+                                                key="last"
+                                                onClick={() => setPage(totalPages - 1)}
+                                                className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
+                                                    page === totalPages - 1
+                                                        ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
+                                                        : 'bg-white border-secondary-300 text-secondary-500 hover:bg-secondary-50'
+                                                }`}
+                                            >
+                                                {totalPages}
+                                            </button>
+                                        );
+                                    }
+
+                                    return pageButtons;
+                                })()}
 
                                 <button
                                     onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
                                     disabled={page >= totalPages - 1}
-                                    className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-secondary-300 bg-white text-sm font-medium ${
+                                    className={`relative inline-flex items-center px-1 py-1 rounded-r-md border border-secondary-300 bg-white text-xs font-medium ${
                                         page >= totalPages - 1
                                             ? 'text-secondary-300 cursor-not-allowed'
                                             : 'text-secondary-500 hover:bg-secondary-50'
@@ -503,7 +589,7 @@ const RiskAssessmentsList = () => {
                                 >
                                     <span className="sr-only">Next</span>
                                     <svg
-                                        className="h-5 w-5"
+                                        className="h-4 w-4"
                                         xmlns="http://www.w3.org/2000/svg"
                                         viewBox="0 0 20 20"
                                         fill="currentColor"
@@ -518,6 +604,29 @@ const RiskAssessmentsList = () => {
                                 </button>
                             </nav>
                         </div>
+                    </div>
+
+                    {/* Mobile pagination */}
+                    <div className="flex sm:hidden justify-between">
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setPage(p => Math.max(0, p - 1))}
+                            disabled={page === 0}
+                        >
+                            Previous
+                        </Button>
+                        <span className="text-xs self-center">
+                Page {page + 1} of {totalPages}
+            </span>
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                            disabled={page >= totalPages - 1}
+                        >
+                            Next
+                        </Button>
                     </div>
                 </div>
             )}

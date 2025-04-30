@@ -287,13 +287,13 @@ const ReportsList = () => {
                         {/* Pagination */}
                         {totalPages > 1 && (
                             <div className="px-4 py-3 flex items-center justify-between border-t border-secondary-200 sm:px-6">
-                                <div className="flex-1 flex items-center justify-between">
-                                    <div>
-                                        <p className="text-sm text-secondary-700">
+                                <div className="flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                                    <div className="mb-2 sm:mb-0">
+                                        <p className="text-xs sm:text-sm text-secondary-700">
                                             Showing <span className="font-medium">{page * pageSize + 1}</span> to{' '}
                                             <span className="font-medium">
-                                                {Math.min((page + 1) * pageSize, totalElements)}
-                                            </span>{' '}
+                        {Math.min((page + 1) * pageSize, totalElements)}
+                    </span>{' '}
                                             of <span className="font-medium">{totalElements}</span> results
                                         </p>
                                     </div>
@@ -302,43 +302,110 @@ const ReportsList = () => {
                                             <button
                                                 onClick={() => handlePageChange(page - 1)}
                                                 disabled={page === 0}
-                                                className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-secondary-300 bg-white text-sm font-medium ${
+                                                className={`relative inline-flex items-center px-1 py-1 sm:px-2 sm:py-2 rounded-l-md border border-secondary-300 bg-white text-sm font-medium ${
                                                     page === 0
                                                         ? 'text-secondary-300 cursor-not-allowed'
                                                         : 'text-secondary-500 hover:bg-secondary-50 cursor-pointer'
                                                 }`}
                                             >
                                                 <span className="sr-only">Previous</span>
-                                                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                <svg className="h-4 w-4 sm:h-5 sm:w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                                     <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
                                                 </svg>
                                             </button>
 
-                                            {[...Array(totalPages).keys()].map((pageNumber) => (
-                                                <button
-                                                    key={pageNumber}
-                                                    onClick={() => handlePageChange(pageNumber)}
-                                                    className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                                                        pageNumber === page
-                                                            ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
-                                                            : 'bg-white border-secondary-300 text-secondary-500 hover:bg-secondary-50'
-                                                    }`}
-                                                >
-                                                    {pageNumber + 1}
-                                                </button>
-                                            ))}
+                                            {/* Show limited page numbers */}
+                                            {(() => {
+                                                // Display logic for pagination numbers
+                                                let startPage = Math.max(0, page - 1);
+                                                let endPage = Math.min(totalPages - 1, page + 1);
+
+                                                // Ensure we always show at least 3 pages if available
+                                                if (endPage - startPage < 2 && totalPages > 2) {
+                                                    if (startPage === 0) {
+                                                        endPage = Math.min(totalPages - 1, 2);
+                                                    } else if (endPage === totalPages - 1) {
+                                                        startPage = Math.max(0, totalPages - 3);
+                                                    }
+                                                }
+
+                                                const pageNumbers = [];
+
+                                                // Add first page if not in range
+                                                if (startPage > 0) {
+                                                    pageNumbers.push(
+                                                        <button
+                                                            key="first"
+                                                            onClick={() => handlePageChange(0)}
+                                                            className="relative inline-flex items-center px-2 py-1 sm:px-3 sm:py-2 border border-secondary-300 bg-white text-xs sm:text-sm font-medium text-secondary-500 hover:bg-secondary-50"
+                                                        >
+                                                            1
+                                                        </button>
+                                                    );
+
+                                                    // Add ellipsis if needed
+                                                    if (startPage > 1) {
+                                                        pageNumbers.push(
+                                                            <span key="ellipsis1" className="relative inline-flex items-center px-2 py-1 sm:px-3 sm:py-2 border border-secondary-300 bg-white text-xs sm:text-sm font-medium text-secondary-500">
+                                        ...
+                                    </span>
+                                                        );
+                                                    }
+                                                }
+
+                                                // Add page numbers
+                                                for (let i = startPage; i <= endPage; i++) {
+                                                    pageNumbers.push(
+                                                        <button
+                                                            key={i}
+                                                            onClick={() => handlePageChange(i)}
+                                                            className={`relative inline-flex items-center px-2 py-1 sm:px-3 sm:py-2 border text-xs sm:text-sm font-medium ${
+                                                                i === page
+                                                                    ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
+                                                                    : 'bg-white border-secondary-300 text-secondary-500 hover:bg-secondary-50'
+                                                            }`}
+                                                        >
+                                                            {i + 1}
+                                                        </button>
+                                                    );
+                                                }
+
+                                                // Add last page if not in range
+                                                if (endPage < totalPages - 1) {
+                                                    // Add ellipsis if needed
+                                                    if (endPage < totalPages - 2) {
+                                                        pageNumbers.push(
+                                                            <span key="ellipsis2" className="relative inline-flex items-center px-2 py-1 sm:px-3 sm:py-2 border border-secondary-300 bg-white text-xs sm:text-sm font-medium text-secondary-500">
+                                        ...
+                                    </span>
+                                                        );
+                                                    }
+
+                                                    pageNumbers.push(
+                                                        <button
+                                                            key="last"
+                                                            onClick={() => handlePageChange(totalPages - 1)}
+                                                            className="relative inline-flex items-center px-2 py-1 sm:px-3 sm:py-2 border border-secondary-300 bg-white text-xs sm:text-sm font-medium text-secondary-500 hover:bg-secondary-50"
+                                                        >
+                                                            {totalPages}
+                                                        </button>
+                                                    );
+                                                }
+
+                                                return pageNumbers;
+                                            })()}
 
                                             <button
                                                 onClick={() => handlePageChange(page + 1)}
                                                 disabled={page >= totalPages - 1}
-                                                className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-secondary-300 bg-white text-sm font-medium ${
+                                                className={`relative inline-flex items-center px-1 py-1 sm:px-2 sm:py-2 rounded-r-md border border-secondary-300 bg-white text-sm font-medium ${
                                                     page >= totalPages - 1
                                                         ? 'text-secondary-300 cursor-not-allowed'
                                                         : 'text-secondary-500 hover:bg-secondary-50 cursor-pointer'
                                                 }`}
                                             >
                                                 <span className="sr-only">Next</span>
-                                                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                <svg className="h-4 w-4 sm:h-5 sm:w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                                     <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
                                                 </svg>
                                             </button>

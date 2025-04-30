@@ -141,9 +141,9 @@ const RiskAssessmentDetail = () => {
 
     // Prepare risk factor details for gauge card
     const riskFactors = [
-        { label: 'Z-Score Risk', value: assessment.zScoreRisk?.toFixed(1) || 'N/A' },
-        { label: 'M-Score Risk', value: assessment.mScoreRisk?.toFixed(1) || 'N/A' },
-        { label: 'F-Score Risk', value: assessment.fScoreRisk?.toFixed(1) || 'N/A' },
+        { label: 'Z-Score Risk', value: assessment.zscoreRisk?.toFixed(1) || 'N/A' },
+        { label: 'M-Score Risk', value: assessment.mscoreRisk?.toFixed(1) || 'N/A' },
+        { label: 'F-Score Risk', value: assessment.fscoreRisk?.toFixed(1) || 'N/A' },
         { label: 'Financial Ratio Risk', value: assessment.financialRatioRisk?.toFixed(1) || 'N/A' },
         { label: 'ML Prediction Risk', value: assessment.mlPredictionRisk?.toFixed(1) || 'N/A' }
     ];

@@ -122,7 +122,7 @@ const CompanyDetail = () => {
                         <div className="flex items-center">
                             <div className="mr-8">
                                 <p className="text-sm text-secondary-500">Risk Score</p>
-                                <p className="text-2xl font-bold">{risk.riskScore?.toFixed(1) || 'N/A'}</p>
+                                <p className="text-2xl font-bold">{risk.overallRiskScore?.toFixed(1) || 'N/A'}</p>
                             </div>
 
                             <div>
@@ -222,17 +222,17 @@ const CompanyDetail = () => {
                                     <div className="grid grid-cols-2 gap-4 mb-6">
                                         <div className="bg-secondary-50 p-4 rounded-lg">
                                             <p className="text-sm text-secondary-500">Z-Score Risk</p>
-                                            <p className="text-lg font-bold">{risk.zScoreRisk?.toFixed(1) || 'N/A'}</p>
+                                            <p className="text-lg font-bold">{risk.zscoreRisk?.toFixed(1) || 'N/A'}</p>
                                         </div>
 
                                         <div className="bg-secondary-50 p-4 rounded-lg">
                                             <p className="text-sm text-secondary-500">M-Score Risk</p>
-                                            <p className="text-lg font-bold">{risk.mScoreRisk?.toFixed(1) || 'N/A'}</p>
+                                            <p className="text-lg font-bold">{risk.mscoreRisk?.toFixed(1) || 'N/A'}</p>
                                         </div>
 
                                         <div className="bg-secondary-50 p-4 rounded-lg">
                                             <p className="text-sm text-secondary-500">F-Score Risk</p>
-                                            <p className="text-lg font-bold">{risk.fScoreRisk?.toFixed(1) || 'N/A'}</p>
+                                            <p className="text-lg font-bold">{risk.fscoreRisk?.toFixed(1) || 'N/A'}</p>
                                         </div>
 
                                         <div className="bg-secondary-50 p-4 rounded-lg">

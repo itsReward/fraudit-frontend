@@ -264,6 +264,7 @@ const CompaniesList = () => {
                                 <div className="flex-1 flex justify-between sm:hidden">
                                     <Button
                                         variant="secondary"
+                                        size="sm"
                                         onClick={() => handlePageChange(page - 1)}
                                         disabled={page === 0}
                                     >
@@ -271,6 +272,7 @@ const CompaniesList = () => {
                                     </Button>
                                     <Button
                                         variant="secondary"
+                                        size="sm"
                                         onClick={() => handlePageChange(page + 1)}
                                         disabled={page >= pagination.totalPages - 1}
                                     >
@@ -279,11 +281,11 @@ const CompaniesList = () => {
                                 </div>
                                 <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                                     <div>
-                                        <p className="text-sm text-secondary-700">
+                                        <p className="text-xs text-secondary-700">
                                             Showing <span className="font-medium">{page * size + 1}</span> to{' '}
                                             <span className="font-medium">
-                                                {Math.min((page + 1) * size, pagination.totalElements)}
-                                            </span>{' '}
+                        {Math.min((page + 1) * size, pagination.totalElements)}
+                    </span>{' '}
                                             of <span className="font-medium">{pagination.totalElements}</span> results
                                         </p>
                                     </div>
@@ -292,43 +294,111 @@ const CompaniesList = () => {
                                             <button
                                                 onClick={() => handlePageChange(page - 1)}
                                                 disabled={page === 0}
-                                                className={`relative inline-flex items-center px-2 py-2 rounded-l-md border border-secondary-300 bg-white text-sm font-medium ${
+                                                className={`relative inline-flex items-center px-1 py-1 rounded-l-md border border-secondary-300 bg-white text-xs font-medium ${
                                                     page === 0
                                                         ? 'text-secondary-300 cursor-not-allowed'
                                                         : 'text-secondary-500 hover:bg-secondary-50 cursor-pointer'
                                                 }`}
                                             >
                                                 <span className="sr-only">Previous</span>
-                                                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                                     <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
                                                 </svg>
                                             </button>
 
-                                            {[...Array(pagination.totalPages).keys()].map((pageNumber) => (
-                                                <button
-                                                    key={pageNumber}
-                                                    onClick={() => handlePageChange(pageNumber)}
-                                                    className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                                                        pageNumber === page
-                                                            ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
-                                                            : 'bg-white border-secondary-300 text-secondary-500 hover:bg-secondary-50'
-                                                    }`}
-                                                >
-                                                    {pageNumber + 1}
-                                                </button>
-                                            ))}
+                                            {/* Smart pagination with limited page numbers */}
+                                            {(() => {
+                                                // Maximum number of page buttons to show
+                                                const maxPageButtons = 5;
+                                                const totalPagesArray = [...Array(pagination.totalPages).keys()];
+
+                                                // If we have fewer pages than our maximum, show them all
+                                                if (pagination.totalPages <= maxPageButtons) {
+                                                    return totalPagesArray.map((pageNumber) => (
+                                                        <button
+                                                            key={pageNumber}
+                                                            onClick={() => handlePageChange(pageNumber)}
+                                                            className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
+                                                                pageNumber === page
+                                                                    ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
+                                                                    : 'bg-white border-secondary-300 text-secondary-500 hover:bg-secondary-50'
+                                                            }`}
+                                                        >
+                                                            {pageNumber + 1}
+                                                        </button>
+                                                    ));
+                                                }
+
+                                                // For many pages, show a smart subset with first, last and current range
+                                                let pagesToShow = [];
+
+                                                // Always include first page
+                                                pagesToShow.push(0);
+
+                                                // Calculate range around current page
+                                                const rangeStart = Math.max(1, Math.min(page - 1, pagination.totalPages - maxPageButtons + 1));
+                                                const rangeEnd = Math.min(pagination.totalPages - 2, page + 1);
+
+                                                // Add ellipsis after first page if needed
+                                                if (rangeStart > 1) {
+                                                    pagesToShow.push('ellipsis1');
+                                                }
+
+                                                // Add pages in the middle range
+                                                for (let i = rangeStart; i <= rangeEnd; i++) {
+                                                    pagesToShow.push(i);
+                                                }
+
+                                                // Add ellipsis before last page if needed
+                                                if (rangeEnd < pagination.totalPages - 2) {
+                                                    pagesToShow.push('ellipsis2');
+                                                }
+
+                                                // Always include last page if there's more than one page
+                                                if (pagination.totalPages > 1) {
+                                                    pagesToShow.push(pagination.totalPages - 1);
+                                                }
+
+                                                // Render the page buttons
+                                                return pagesToShow.map((pageItem, index) => {
+                                                    if (pageItem === 'ellipsis1' || pageItem === 'ellipsis2') {
+                                                        return (
+                                                            <span
+                                                                key={pageItem}
+                                                                className="relative inline-flex items-center px-1 py-1 border border-secondary-300 bg-white text-xs font-medium text-secondary-500"
+                                                            >
+                                        …
+                                    </span>
+                                                        );
+                                                    }
+
+                                                    return (
+                                                        <button
+                                                            key={index}
+                                                            onClick={() => handlePageChange(pageItem)}
+                                                            className={`relative inline-flex items-center px-2 py-1 border text-xs font-medium ${
+                                                                pageItem === page
+                                                                    ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
+                                                                    : 'bg-white border-secondary-300 text-secondary-500 hover:bg-secondary-50'
+                                                            }`}
+                                                        >
+                                                            {pageItem + 1}
+                                                        </button>
+                                                    );
+                                                });
+                                            })()}
 
                                             <button
                                                 onClick={() => handlePageChange(page + 1)}
                                                 disabled={page >= pagination.totalPages - 1}
-                                                className={`relative inline-flex items-center px-2 py-2 rounded-r-md border border-secondary-300 bg-white text-sm font-medium ${
+                                                className={`relative inline-flex items-center px-1 py-1 rounded-r-md border border-secondary-300 bg-white text-xs font-medium ${
                                                     page >= pagination.totalPages - 1
                                                         ? 'text-secondary-300 cursor-not-allowed'
                                                         : 'text-secondary-500 hover:bg-secondary-50 cursor-pointer'
                                                 }`}
                                             >
                                                 <span className="sr-only">Next</span>
-                                                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                <svg className="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                                                     <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
                                                 </svg>
                                             </button>

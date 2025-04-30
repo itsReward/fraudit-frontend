@@ -4,6 +4,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { getAvailableReports, generateReport } from '../../api/reports';
 import { getCompanies } from '../../api/companies';
 import { getRiskAssessments } from '../../api/risk';
+import { getStatementsByCompanyId } from '../../api/financial';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import Select from '../../components/common/Select';
@@ -26,6 +27,7 @@ const GenerateReport = () => {
     const [companyId, setCompanyId] = useState(preselectedCompanyId || '');
     const [year, setYear] = useState('');
     const [assessmentId, setAssessmentId] = useState(preselectedAssessmentId || '');
+    const [statementId, setStatementId] = useState('');
     const [format, setFormat] = useState('PDF');
     const [error, setError] = useState(null);
     const [generating, setGenerating] = useState(false);
@@ -51,10 +53,20 @@ const GenerateReport = () => {
         }
     );
 
+    // Fetch financial statements if company is selected
+    const { data: statementsData, isLoading: statementsLoading } = useQuery(
+        ['financialStatements', { companyId }],
+        () => getStatementsByCompanyId(companyId, { size: 100 }),
+        {
+            enabled: !!companyId
+        }
+    );
+
     // Extract data from query results
     const reports = reportsData?.data?.data || [];
     const companies = companiesData?.data?.data?.content || [];
     const assessments = assessmentsData?.data?.data?.content || [];
+    const statements = statementsData?.data?.data?.content || [];
 
     // Generate mutation
     const mutation = useMutation(
@@ -65,7 +77,7 @@ const GenerateReport = () => {
                 let filename = 'report';
 
                 if (contentDisposition) {
-                    const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                    const filenameRegex = /filename[^;=\n]*=((['\"]).*?\2|[^;\n]*)/;
                     const matches = filenameRegex.exec(contentDisposition);
                     if (matches != null && matches[1]) {
                         filename = matches[1].replace(/['"]/g, '');
@@ -99,12 +111,14 @@ const GenerateReport = () => {
         setCompanyId('');
         setYear('');
         setAssessmentId('');
+        setStatementId('');
     };
 
     // Handle company change
     const handleCompanyChange = (e) => {
         setCompanyId(e.target.value);
         setAssessmentId('');
+        setStatementId('');
     };
 
     // Handle report generation
@@ -127,6 +141,10 @@ const GenerateReport = () => {
             parameters.assessmentId = assessmentId;
         }
 
+        if (statementId) {
+            parameters.statementId = statementId;
+        }
+
         mutation.mutate({ reportType, parameters, format });
     };
 
@@ -134,17 +152,19 @@ const GenerateReport = () => {
     const isFormValid = () => {
         if (!reportType) return false;
 
-        // Company is required for most reports
-        if (reportType === 'company-overview' || reportType === 'fraud-risk') {
-            if (!companyId) return false;
+        // Validation rules based on report type
+        switch(reportType) {
+            case 'company-overview':
+            case 'fraud-risk':
+                return !!companyId;
+            case 'risk-assessment':
+                return !!assessmentId;
+            case 'financial-analysis':
+            case 'financial-statement':
+                return !!statementId;
+            default:
+                return true;
         }
-
-        // Assessment ID is required for risk-assessment report
-        if (reportType === 'risk-assessment') {
-            if (!assessmentId) return false;
-        }
-
-        return true;
     };
 
     // Format options
@@ -215,6 +235,8 @@ const GenerateReport = () => {
                                 { value: 'fraud-risk', label: 'Fraud Risk Report' },
                                 { value: 'risk-assessment', label: 'Risk Assessment Report' },
                                 { value: 'system-activity', label: 'System Activity Report' },
+                                { value: 'financial-analysis', label: 'Financial Analysis Report' },
+                                { value: 'financial-statement', label: 'Financial Statement Report' },
                             ]}
                             required
                         />
@@ -225,92 +247,89 @@ const GenerateReport = () => {
                             <h3 className="text-sm font-medium text-secondary-900 mb-3">Report Parameters</h3>
 
                             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                                {(reportType === 'company-overview' || reportType === 'fraud-risk') && (
-                                    <>
-                                        <Select
-                                            label="Company"
-                                            id="companyId"
-                                            name="companyId"
-                                            value={companyId}
-                                            onChange={handleCompanyChange}
-                                            options={[
-                                                { value: '', label: 'Select a company' },
-                                                ...companies.map(company => ({
-                                                    value: company.id.toString(),
-                                                    label: company.name
-                                                }))
-                                            ]}
-                                            required
-                                        />
-
-                                        <Select
-                                            label="Year"
-                                            id="year"
-                                            name="year"
-                                            value={year}
-                                            onChange={(e) => setYear(e.target.value)}
-                                            options={yearOptions}
-                                        />
-                                    </>
-                                )}
-
-                                {reportType === 'risk-assessment' && (
-                                    <>
-                                        <Select
-                                            label="Company"
-                                            id="companyId"
-                                            name="companyId"
-                                            value={companyId}
-                                            onChange={handleCompanyChange}
-                                            options={[
-                                                { value: '', label: 'Select a company' },
-                                                ...companies.map(company => ({
-                                                    value: company.id.toString(),
-                                                    label: company.name
-                                                }))
-                                            ]}
-                                            required
-                                        />
-
-                                        <Select
-                                            label="Risk Assessment"
-                                            id="assessmentId"
-                                            name="assessmentId"
-                                            value={assessmentId}
-                                            onChange={(e) => setAssessmentId(e.target.value)}
-                                            options={[
-                                                { value: '', label: 'Select an assessment' },
-                                                ...assessments.map(assessment => ({
-                                                    value: assessment.id.toString(),
-                                                    label: `${assessment.year} - ${assessment.riskLevel} (${assessment.overallRiskScore.toFixed(1)})`
-                                                }))
-                                            ]}
-                                            required
-                                            disabled={!companyId || assessmentsLoading}
-                                            helpText={!companyId ? 'Select a company first' : ''}
-                                        />
-                                    </>
-                                )}
-
-                                {reportType === 'system-activity' && (
+                                {/* Company selection - for most reports */}
+                                {(reportType === 'company-overview' || 
+                                  reportType === 'fraud-risk' || 
+                                  reportType === 'financial-analysis' || 
+                                  reportType === 'financial-statement') && (
                                     <Select
-                                        label="Time Period"
-                                        id="period"
-                                        name="period"
-                                        value={year}
-                                        onChange={(e) => setYear(e.target.value)}
+                                        label="Company"
+                                        id="companyId"
+                                        name="companyId"
+                                        value={companyId}
+                                        onChange={handleCompanyChange}
                                         options={[
-                                            { value: '', label: 'Select time period' },
-                                            { value: 'last-week', label: 'Last Week' },
-                                            { value: 'last-month', label: 'Last Month' },
-                                            { value: 'last-quarter', label: 'Last Quarter' },
-                                            { value: 'last-year', label: 'Last Year' },
-                                            { value: 'all-time', label: 'All Time' }
+                                            { value: '', label: 'Select a company' },
+                                            ...companies.map(company => ({
+                                                value: company.id.toString(),
+                                                label: company.name
+                                            }))
                                         ]}
                                         required
                                     />
                                 )}
 
+                                {/* Year selection - optional for most reports */}
+                                {(reportType === 'company-overview' || 
+                                  reportType === 'fraud-risk') && (
+                                    <Select
+                                        label="Year"
+                                        id="year"
+                                        name="year"
+                                        value={year}
+                                        onChange={(e) => setYear(e.target.value)}
+                                        options={yearOptions}
+                                    />
+                                )}
+
+                                {/* Risk assessment selection - for risk assessment report */}
+                                {reportType === 'risk-assessment' && assessments.length > 0 && (
+                                    <Select
+                                        label="Risk Assessment"
+                                        id="assessmentId"
+                                        name="assessmentId"
+                                        value={assessmentId}
+                                        onChange={(e) => setAssessmentId(e.target.value)}
+                                        options={[
+                                            { value: '', label: 'Select an assessment' },
+                                            ...assessments.map(assessment => ({
+                                                value: assessment.id.toString(),
+                                                label: `${assessment.companyName} - ${new Date(assessment.assessmentDate).toLocaleDateString()}`
+                                            }))
+                                        ]}
+                                        required
+                                    />
+                                )}
+
+                                {/* Financial statement selection - for financial reports */}
+                                {(reportType === 'financial-analysis' || 
+                                  reportType === 'financial-statement') && 
+                                  companyId && (
+                                    statementsLoading ? (
+                                        <div className="flex items-center space-x-2">
+                                            <Loading size="sm" />
+                                            <span className="text-secondary-500">Loading statements...</span>
+                                        </div>
+                                    ) : (
+                                        <Select
+                                            label="Financial Statement"
+                                            id="statementId"
+                                            name="statementId"
+                                            value={statementId}
+                                            onChange={(e) => setStatementId(e.target.value)}
+                                            options={[
+                                                { value: '', label: 'Select a financial statement' },
+                                                ...statements.map(statement => ({
+                                                    value: statement.id.toString(),
+                                                    label: `${statement.statementType} - ${statement.fiscalYear} ${statement.fiscalPeriod || ''}`
+                                                }))
+                                            ]}
+                                            required
+                                        />
+                                    )
+                                )}
+
+                                {/* Format selection - for all reports */}
                                 <Select
                                     label="Output Format"
                                     id="format"
@@ -318,138 +337,126 @@ const GenerateReport = () => {
                                     value={format}
                                     onChange={(e) => setFormat(e.target.value)}
                                     options={formatOptions}
-                                    required
                                 />
+                            </div>
+
+                            {/* For risk assessment report - company selection UI when no assessmentId provided */}
+                            {reportType === 'risk-assessment' && !assessmentId && (
+                                <div className="mt-6 border-t border-secondary-200 pt-4">
+                                    <p className="text-sm text-secondary-500 mb-3">
+                                        Select a company to view available risk assessments:
+                                    </p>
+                                    <Select
+                                        label="Company"
+                                        id="companyId"
+                                        name="companyId"
+                                        value={companyId}
+                                        onChange={handleCompanyChange}
+                                        options={[
+                                            { value: '', label: 'Select a company' },
+                                            ...companies.map(company => ({
+                                                value: company.id.toString(),
+                                                label: company.name
+                                            }))
+                                        ]}
+                                    />
+                                </div>
+                            )}
+
+                            {reportType === 'risk-assessment' && companyId && assessmentsLoading && (
+                                <div className="mt-4 flex items-center space-x-2">
+                                    <Loading size="sm" />
+                                    <span className="text-secondary-500">Loading assessments...</span>
+                                </div>
+                            )}
+
+                            {reportType === 'risk-assessment' && companyId && !assessmentsLoading && assessments.length === 0 && (
+                                <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                                    <p className="text-sm text-amber-800">
+                                        No risk assessments found for this company. Please select a different company or create a new assessment.
+                                    </p>
+                                </div>
+                            )}
+
+                            <div className="mt-8 flex items-center justify-end">
+                                <Button
+                                    type="button"
+                                    variant="primary"
+                                    onClick={handleGenerateReport}
+                                    disabled={!isFormValid() || generating}
+                                    icon={generating ? <Loading size="sm" color="white" /> : <FiDownload />}
+                                >
+                                    {generating ? 'Generating...' : 'Generate Report'}
+                                </Button>
                             </div>
                         </div>
                     )}
-
-                    {reportType && (
-                        <div className="border-t border-secondary-200 pt-4 flex justify-end">
-                            <Button
-                                variant="primary"
-                                onClick={handleGenerateReport}
-                                disabled={!isFormValid() || generating}
-                                isLoading={generating}
-                            >
-                                <FiDownload className="mr-2 h-4 w-4" />
-                                Generate Report
-                            </Button>
-                        </div>
-                    )}
                 </div>
-            </Card>
 
-            {reportType && (
-                <Card title="Report Description" className="mt-4">
-                    <div className="space-y-4">
+                {reportType && (
+                    <div className="mt-8 border-t border-secondary-200 pt-4">
+                        <h3 className="text-sm font-medium text-secondary-900 mb-2">Report Contents</h3>
+                        
                         {reportType === 'company-overview' && (
-                            <>
-                                <div className="flex items-start">
-                                    <FiFileText className="h-5 w-5 text-primary-500 mt-0.5 mr-2" />
-                                    <div>
-                                        <h3 className="font-medium text-secondary-900">Company Overview Report</h3>
-                                        <p className="text-sm text-secondary-500 mt-1">
-                                            A comprehensive analysis of a company's financial health, performance metrics, and historical trends.
-                                            This report includes key financial ratios, risk indicators, and comparison with industry benchmarks.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="pl-7">
-                                    <h4 className="text-sm font-medium text-secondary-900">Report Contains:</h4>
-                                    <ul className="mt-1 text-sm text-secondary-500 list-disc pl-5 space-y-1">
-                                        <li>Company profile and general information</li>
-                                        <li>Financial statement summaries</li>
-                                        <li>Key financial ratios and trends</li>
-                                        <li>Risk assessment overview</li>
-                                        <li>Industry comparison</li>
-                                    </ul>
-                                </div>
-                            </>
+                            <ul className="text-sm text-secondary-600 list-disc ml-5 space-y-1">
+                                <li>Company profile and basic information</li>
+                                <li>Financial highlights and key metrics</li>
+                                <li>Industry comparison and benchmarks</li>
+                                <li>Historical performance summary</li>
+                            </ul>
                         )}
-
+                        
                         {reportType === 'fraud-risk' && (
-                            <>
-                                <div className="flex items-start">
-                                    <FiFileText className="h-5 w-5 text-primary-500 mt-0.5 mr-2" />
-                                    <div>
-                                        <h3 className="font-medium text-secondary-900">Fraud Risk Report</h3>
-                                        <p className="text-sm text-secondary-500 mt-1">
-                                            An in-depth analysis of fraud risk indicators for a company, designed to identify potential
-                                            areas of concern in financial reporting and provide recommendations for further investigation.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="pl-7">
-                                    <h4 className="text-sm font-medium text-secondary-900">Report Contains:</h4>
-                                    <ul className="mt-1 text-sm text-secondary-500 list-disc pl-5 space-y-1">
-                                        <li>Executive summary of fraud risk factors</li>
-                                        <li>Beneish M-Score analysis</li>
-                                        <li>Altman Z-Score analysis</li>
-                                        <li>Piotroski F-Score analysis</li>
-                                        <li>Unusual financial patterns and anomalies</li>
-                                        <li>Risk alerts and recommendations</li>
-                                    </ul>
-                                </div>
-                            </>
+                            <ul className="text-sm text-secondary-600 list-disc ml-5 space-y-1">
+                                <li>Overall fraud risk score and trends</li>
+                                <li>Key risk indicators and red flags</li>
+                                <li>Risk alerts and recommendations</li>
+                                <li>Financial ratio analysis</li>
+                                <li>Fraud prediction model results</li>
+                            </ul>
                         )}
-
+                        
                         {reportType === 'risk-assessment' && (
-                            <>
-                                <div className="flex items-start">
-                                    <FiFileText className="h-5 w-5 text-primary-500 mt-0.5 mr-2" />
-                                    <div>
-                                        <h3 className="font-medium text-secondary-900">Risk Assessment Report</h3>
-                                        <p className="text-sm text-secondary-500 mt-1">
-                                            A detailed report on a specific risk assessment performed on a company's financial statements,
-                                            including methodology, findings, alerts, and recommended actions.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="pl-7">
-                                    <h4 className="text-sm font-medium text-secondary-900">Report Contains:</h4>
-                                    <ul className="mt-1 text-sm text-secondary-500 list-disc pl-5 space-y-1">
-                                        <li>Assessment methodology and parameters</li>
-                                        <li>Risk score breakdown and analysis</li>
-                                        <li>Detailed findings for each risk factor</li>
-                                        <li>Risk alerts generated from the assessment</li>
-                                        <li>Recommended actions and follow-up procedures</li>
-                                    </ul>
-                                </div>
-                            </>
+                            <ul className="text-sm text-secondary-600 list-disc ml-5 space-y-1">
+                                <li>Detailed risk assessment results</li>
+                                <li>Financial statement analysis</li>
+                                <li>Beneish M-Score analysis</li>
+                                <li>Altman Z-Score analysis</li>
+                                <li>Piotroski F-Score analysis</li>
+                                <li>Identified anomalies and red flags</li>
+                            </ul>
                         )}
-
+                        
+                        {reportType === 'financial-analysis' && (
+                            <ul className="text-sm text-secondary-600 list-disc ml-5 space-y-1">
+                                <li>Detailed financial ratio analysis</li>
+                                <li>Trend analysis of key metrics</li>
+                                <li>Comparison to industry benchmarks</li>
+                                <li>Liquidity, solvency and profitability metrics</li>
+                                <li>Financial health indicators</li>
+                            </ul>
+                        )}
+                        
+                        {reportType === 'financial-statement' && (
+                            <ul className="text-sm text-secondary-600 list-disc ml-5 space-y-1">
+                                <li>Balance sheet with comparative analysis</li>
+                                <li>Income statement with trend analysis</li>
+                                <li>Cash flow statement</li>
+                                <li>Notes and explanations</li>
+                            </ul>
+                        )}
+                        
                         {reportType === 'system-activity' && (
-                            <>
-                                <div className="flex items-start">
-                                    <FiFileText className="h-5 w-5 text-primary-500 mt-0.5 mr-2" />
-                                    <div>
-                                        <h3 className="font-medium text-secondary-900">System Activity Report</h3>
-                                        <p className="text-sm text-secondary-500 mt-1">
-                                            A report on system usage, user activity, and key actions performed within the system
-                                            during the selected time period. Useful for audit trails and compliance reporting.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="pl-7">
-                                    <h4 className="text-sm font-medium text-secondary-900">Report Contains:</h4>
-                                    <ul className="mt-1 text-sm text-secondary-500 list-disc pl-5 space-y-1">
-                                        <li>System access and login activity</li>
-                                        <li>User actions by type and frequency</li>
-                                        <li>Risk assessments performed</li>
-                                        <li>Companies and statements added or modified</li>
-                                        <li>Alerts generated and their resolution status</li>
-                                    </ul>
-                                </div>
-                            </>
+                            <ul className="text-sm text-secondary-600 list-disc ml-5 space-y-1">
+                                <li>User activity logs and summary</li>
+                                <li>System access statistics</li>
+                                <li>Feature usage metrics</li>
+                                <li>Audit trail of key actions</li>
+                            </ul>
                         )}
                     </div>
-                </Card>
-            )}
+                )}
+            </Card>
         </div>
     );
 };
